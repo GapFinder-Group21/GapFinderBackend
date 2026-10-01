@@ -1,0 +1,5 @@
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+  client-secret: ${GOOGLE_CLIENT_SECRET}
+  redirect-uri: http://localhost:8080/google/callback
+  scopes: https://www.googleapis.com/auth/calendar.readonly

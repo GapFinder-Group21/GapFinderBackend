@@ -3,6 +3,7 @@ package com.backend.gapfinder.controllers;
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.services.AnalyticsService;
+import com.backend.gapfinder.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 
 
@@ -59,4 +60,15 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+        // ==================== BQ 11 ====================
+
+    // Get student presence and free time metrics aggregated by campus building
+    // GET /analytics/buildings/gap-presence
+    @GetMapping("/buildings/gap-presence")
+    public List<BuildingGapPresenceResponseDTO> getBuildingsByGapPresence() {
+        return analyticsService.getBuildingsByGapPresence();
+    }
+
+    // ================== END BQ 11 ==================
 }

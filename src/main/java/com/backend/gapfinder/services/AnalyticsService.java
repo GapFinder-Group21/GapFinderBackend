@@ -4,6 +4,7 @@ import com.backend.gapfinder.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.enums.MatchStatusEnum;
 import com.backend.gapfinder.enums.OpenTableStatusEnum;
@@ -12,6 +13,7 @@ import com.backend.gapfinder.repositories.GapRepository;
 import com.backend.gapfinder.repositories.MatchRepository;
 import com.backend.gapfinder.repositories.OpenTableRepository;
 import com.backend.gapfinder.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
 
 import lombok.extern.slf4j.Slf4j;
@@ -229,4 +231,60 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 11 ==================
+
+    // ==================== BQ 13 INDIVIDUAL ====================
+    // Daniela Martinez: Which interests are shared by the largest groups of students who are free at the same time?
+
+    // Upper bound used when no end date is given (LocalDateTime.MAX is out of the PostgreSQL timestamp range)
+    private static final LocalDateTime FUTURE_END = LocalDateTime.of(9999, 12, 31, 23, 59);
+
+    // Ranks the interests by the largest group of students sharing them who are free at the same time, largest first
+    // from: optional, whole history if null. to: optional, no upper bound if null
+    // limit: optional, all interests if null
+    @Transactional(readOnly = true)
+    public List<SharedInterestGroupStatsBasicDTO> getInterestsByLargestFreeGroup(
+            LocalDateTime from, LocalDateTime to, Integer limit) {
+
+        LocalDateTime start = from != null ? from : HISTORY_START;
+        LocalDateTime end = to != null ? to : FUTURE_END;
+
+        log.info("Inicia proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
+                start, end);
+
+        if (!start.isBefore(end)) {
+            throw new IllegalArgumentException("La fecha 'from' debe ser antes de la fecha 'to'");
+        }
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException("El límite debe ser mayor a 0");
+        }
+
+        List<SharedInterestGroupStatsBasicDTO> stats = gapRepository
+                .findLargestFreeGroupByInterest(start, end).stream()
+                .map(this::toSharedInterestGroupStats)
+                .sorted(Comparator.comparingLong(SharedInterestGroupStatsBasicDTO::largestGroupSize)
+                        .thenComparingLong(SharedInterestGroupStatsBasicDTO::studentsWithInterest)
+                        .reversed())
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .toList();
+
+        if (stats.isEmpty()) {
+            throw new NotFoundException("No hay estudiantes con intereses y gaps en el rango de fechas indicado");
+        }
+
+        log.info("Termina proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
+                start, end);
+        return stats;
+    }
+
+    // Builds the statistics of an interest from the query row
+    private SharedInterestGroupStatsBasicDTO toSharedInterestGroupStats(SharedInterestGroupProjection row) {
+        return new SharedInterestGroupStatsBasicDTO(
+                row.getInterestId(),
+                row.getInterestName(),
+                row.getLargestGroupSize() != null ? row.getLargestGroupSize() : 0L,
+                row.getPeakTime(),
+                row.getStudentsWithInterest() != null ? row.getStudentsWithInterest() : 0L);
+    }
+
+    // ================== END BQ 13 INDIVIDUAL ==================
 }

@@ -30,5 +30,7 @@ public class UserBasicDTO {
     // Date and time when the user account was created.
     private LocalDateTime createdAt;
 
-
+    // Last date and time when the user's location was updated.
+    private LocalDateTime locationUpdatedAt;
 }
+

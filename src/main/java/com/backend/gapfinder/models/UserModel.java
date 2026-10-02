@@ -64,5 +64,13 @@ public class UserModel extends BaseModel {
     )
     private List<InterestModel> interests;
 
+    // Current building on campus (for context-aware features)
+    @ManyToOne
+    @JoinColumn(name = "current_building_id", nullable = true)
+    private BuildingModel currentBuilding;
+
+    // Last time the current location was updated
+    @Column(name = "location_updated_at", nullable = true)
+    private LocalDateTime locationUpdatedAt;
 
 }

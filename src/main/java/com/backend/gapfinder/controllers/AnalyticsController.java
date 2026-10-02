@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controllers;
 
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.services.AnalyticsService;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 
@@ -42,4 +43,20 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 5 ==================
+
+    // ==================== BQ 12 INDIVIDUAL ====================
+
+    // Which careers and semesters have the highest rate of unmatched free time on campus?
+    // Get the (career, semester) groups ranked by unmatched free time rate, highest first
+    // GET /analytics/free-time/unmatched-by-career-semester?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
+    @GetMapping("/free-time/unmatched-by-career-semester")
+    public List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeByCareerAndSemester(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getUnmatchedFreeTimeByCareerAndSemester(from, to, limit);
+    }
+
+    // ================== END BQ 12 INDIVIDUAL ==================
 }

@@ -44,4 +44,12 @@ public class UserContextController {
         List<UserModel> friends = nearbyFriendsService.updateLocationAndGetNearbyFriends(userId, buildingId);
         return modelMapper.map(friends, new TypeToken<List<UserBasicDTO>>() {}.getType());
     }
+
+    // Get friends currently in the same building as the user
+    // GET /users/{userId}/friends/nearby
+    @GetMapping("/{userId}/friends/nearby")
+    public List<UserBasicDTO> getNearbyFriends(@PathVariable Long userId) {
+        List<UserModel> friends = nearbyFriendsService.getNearbyFriends(userId);
+        return modelMapper.map(friends, new TypeToken<List<UserBasicDTO>>() {}.getType());
+    }
 }

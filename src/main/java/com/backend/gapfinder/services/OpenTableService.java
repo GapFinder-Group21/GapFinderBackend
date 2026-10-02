@@ -168,4 +168,15 @@ public class OpenTableService {
         }
         return activityService.getById(activity.getId());
     }
+
+    // Count the open tables created since the given date (used for the abandonment statistics)
+    @Transactional(readOnly = true)
+    public long countCreatedSince(LocalDateTime since) {
+        log.info("Inicia proceso de contar las open tables creadas desde {}", since);
+
+        long count = openTableRepository.countByCreatedAtGreaterThanEqual(since);
+
+        log.info("Termina proceso de contar las open tables creadas desde {}", since);
+        return count;
+    }
 }

@@ -1,5 +1,6 @@
 package com.backend.gapfinder.services;
 
+import com.backend.gapfinder.builders.OpenTableRecommendationResponseBuilder;
 import com.backend.gapfinder.dto.OpenTableCompleteDTO;
 import com.backend.gapfinder.dto.responses.OpenTableRecommendationResponseDTO;
 import com.backend.gapfinder.enums.OpenTableStatusEnum;
@@ -44,7 +45,7 @@ public class RecommendationService {
         Optional<FavoriteBuildingProjection> favorite = locationLogRepository.findFavoriteBuilding(userId);
         if (favorite.isEmpty()) {
             log.info("El usuario {} no tiene logs de ubicación dentro de sus gaps", userId);
-            return new OpenTableRecommendationResponseDTO(null, null, 0.0, List.of());
+            return new OpenTableRecommendationResponseBuilder().build();
         }
 
         FavoriteBuildingProjection f = favorite.get();
@@ -57,7 +58,10 @@ public class RecommendationService {
                 .toList();
 
         log.info("Termina proceso de recomendar open tables para el usuario {}", userId);
-        return new OpenTableRecommendationResponseDTO(
-                f.getBuildingId(), f.getBuildingName(), f.getTotalMinutes(), tables);
+        return new OpenTableRecommendationResponseBuilder()
+                .withFavoriteBuilding(f.getBuildingId(), f.getBuildingName())
+                .withTotalMinutes(f.getTotalMinutes())
+                .withOpenTables(tables)
+                .build();
     }
 }

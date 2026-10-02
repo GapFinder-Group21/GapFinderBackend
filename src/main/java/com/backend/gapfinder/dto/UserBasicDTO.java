@@ -32,5 +32,12 @@ public class UserBasicDTO {
 
     // Last date and time when the user's location was updated.
     private LocalDateTime locationUpdatedAt;
+
+    // Indicates whether the user's account is verified.
+    private boolean verified;
+
+    // User's selected effort type or preference level (Enum).
+    private EffortTypeEnum preferredEffort;
+
 }
 

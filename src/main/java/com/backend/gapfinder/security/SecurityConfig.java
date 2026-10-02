@@ -58,6 +58,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/google/callback").permitAll()
+                // Local analytics dashboard: the page and its single data endpoint are open (the BQ endpoints stay protected)
+                .requestMatchers("/dashboard.html", "/analytics/dashboard").permitAll()
                 .anyRequest().authenticated()
             )
 

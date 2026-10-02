@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GapFinder Analytics</title>
+
+<!-- Chart.js from a CDN: no install or build needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+
+<style>
+  /* Colors used across the dashboard: one accent for the answer, gray for context */
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --border: #e3e6ea;
+    --text: #1f2933;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-soft: #dbe5fb;
+    --gray: #b8c0cc;
+    --error-bg: #fdecec;
+    --error-text: #9b1c1c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+  }
+
+  .page { max-width: 1200px; margin: 0 auto; }
+
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  .subtitle { margin: 0 0 20px; color: var(--muted); }
+
+  /* Filters row */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .filters label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+  .filters input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .filters input[type="number"] { width: 80px; }
+  .filters .check { flex-direction: row; align-items: center; gap: 6px; }
+  .filters button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filters button:disabled { opacity: .6; cursor: default; }
+  .last-update { margin-left: auto; color: var(--muted); font-size: 12px; }
+
+  /* Error banner (backend down, etc.) */
+  .error {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    background: var(--error-bg);
+    color: var(--error-text);
+  }
+
+  /* One section per BQ type */
+  .type-section { margin-bottom: 28px; }
+  .type-title { margin: 0 0 12px; font-size: 16px; }
+  .type-title span { color: var(--muted); font-weight: 400; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
+
+  /* One card per BQ: question on top, answer below */
+  .card {
+    min-width: 0;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .card.wide { grid-column: 1 / -1; }
+  .bq-tag { color: var(--accent); font-size: 12px; font-weight: 700; }
+  .question { margin: 4px 0 14px; font-size: 15px; font-weight: 600; }
+  .empty { padding: 24px 0; color: var(--muted); text-align: center; }
+  .chart-box { position: relative; }
+
+  /* BQ 3 headline answer */
+  .hero { font-size: 40px; font-weight: 700; line-height: 1.1; }
+  .hero-sub { margin: 6px 0 12px; color: var(--muted); }
+  .meter { height: 10px; background: var(--accent-soft); border-radius: 5px; overflow: hidden; }
+  .meter div { height: 100%; background: var(--accent); border-radius: 5px; }
+
+  /* Small text under a chart */
+  .note { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+  .winner {
+    display: inline-block;
+    padding: 3px 10px;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Detail table (BQ 13) */
+  .table-wrap { overflow-x: auto; margin-top: 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>GapFinder Analytics</h1>
+  <p class="subtitle">Business questions grouped by type. Data comes live from the database.</p>
+
+  <!-- Filters: start date and Top N, sent to GET /analytics/dashboard -->
+  <div class="filters">
+    <label>Since
+      <input type="datetime-local" id="since">
+    </label>
+    <label>Top N (BQ 12 and 13)
+      <input type="number" id="limit" min="1" placeholder="All">
+    </label>
+    <label class="check">
+      <input type="checkbox" id="autoRefresh" checked> Auto refresh every 60 s
+    </label>
+    <button id="refreshBtn">Refresh</button>
+    <span class="last-update" id="lastUpdate">Loading…</span>
+  </div>
+
+  <div class="error" id="error" hidden></div>
+
+  <!-- TYPE 2 -->
+  <section class="type-section">
+    <h2 class="type-title">Type 2</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="bq-tag">BQ 3</div>
+        <p class="question">At which step do students most often leave the Open Table creation process?</p>
+        <div id="bq3"></div>
+      </div>
+      <div class="card">
+        <div class="bq-tag">BQ 5</div>
+        <p class="question">Which gap durations have the lowest match coverage?</p>
+        <div id="bq5"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPE 3 -->
+  <section class="type-section">
+    <h2 class="type-title">Type 3</h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="bq-tag">BQ 7</div>
+        <p class="question">Which connection method leads to more accepted meetups: open tables or matches?</p>
+        <div id="bq7"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPE 4 -->
+  <section class="type-section">
+    <h2 class="type-title">Type 4</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="bq-tag">BQ 11</div>
+        <p class="question">Where do the most students have free time on campus?</p>
+        <div id="bq11"></div>
+      </div>
+      <div class="card">
+        <div class="bq-tag">BQ 12</div>
+        <p class="question">Which careers and semesters have the highest rate of unmatched free time on campus?</p>
+        <div id="bq12"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TYPE 5 (combined 2 + 4) -->
+  <section class="type-section">
+    <h2 class="type-title">Type 5 <span>(combined: Type 2 + Type 4)</span></h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="bq-tag">BQ 13</div>
+        <p class="question">Which interests are shared by the largest groups of students who are free at the same time?</p>
+        <div id="bq13"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // ---------- Settings ----------
+
+  // Data endpoint (same server, so a relative URL is enough)
+  const API_URL = '/analytics/dashboard';
+
+  // How often the dashboard reloads the data when auto refresh is on
+  const REFRESH_MS = 60 * 1000;
+
+  // Colors, read from the CSS variables
+  const css = getComputedStyle(document.documentElement);
+  const ACCENT = css.getPropertyValue('--accent').trim();
+  const ACCENT_SOFT = css.getPropertyValue('--accent-soft').trim();
+  const GRAY = css.getPropertyValue('--gray').trim();
+  const MUTED = css.getPropertyValue('--muted').trim();
+
+  // Natural order of the BQ 5 duration ranges (the backend sends them sorted by coverage)
+  const DURATION_ORDER = ['<30', '30-60', '60-120', '120-180', '180+'];
+
+  // Charts currently on screen, so they can be destroyed before drawing them again
+  const charts = {};
+
+  // Global Chart.js look
+  Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+  Chart.defaults.color = MUTED;
+  Chart.defaults.plugins.legend.display = false;
+
+  // Small plugin that writes the value at the end of each bar (only for datasets with showValues: true)
+  const valueLabels = {
+    id: 'valueLabels',
+    afterDatasetsDraw(chart) {
+      const { ctx } = chart;
+      const horizontal = chart.options.indexAxis === 'y';
+      ctx.save();
+      ctx.font = '600 12px system-ui, sans-serif';
+      ctx.fillStyle = '#1f2933';
+      chart.data.datasets.forEach((dataset, i) => {
+        if (!dataset.showValues) return;
+        chart.getDatasetMeta(i).data.forEach((bar, j) => {
+          const text = dataset.formatValue(dataset.data[j]);
+          if (horizontal) {
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, bar.x + 6, bar.y);
+          } else {
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(text, bar.x, bar.y - 4);
+          }
+        });
+      });
+      ctx.restore();
+    }
+  };
+  Chart.register(valueLabels);
+
+  // ---------- Helpers ----------
+
+  // Number as a percentage with one decimal
+  const pct = value => `${Number(value).toFixed(1)}%`;
+
+  // Minutes as "Xh Ym"
+  function minutes(value) {
+    const total = Math.round(value || 0);
+    const h = Math.floor(total / 60);
+    const m = total % 60;
+    return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  // Date as "Mon, Sep 15, 10:00"
+  function dateTime(value) {
+    if (!value) return '-';
+    return new Date(value).toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  // Escapes text before putting it inside HTML
+  function esc(value) {
+    return String(value ?? '').replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+
+  // Shows the "no data" message in a card
+  function showEmpty(container) {
+    container.innerHTML = '<div class="empty">No data for this period</div>';
+  }
+
+  // Creates a canvas of the given height inside a card and returns it
+  function newCanvas(container, height) {
+    container.innerHTML = `<div class="chart-box" style="height:${height}px"><canvas></canvas></div>`;
+    return container.querySelector('canvas');
+  }
+
+  // Draws (or redraws) a chart in a card
+  function drawChart(key, canvas, config) {
+    if (charts[key]) charts[key].destroy();
+    charts[key] = new Chart(canvas, config);
+  }
+
+  // Removes the chart of a card (used when the card becomes empty)
+  function clearChart(key) {
+    if (charts[key]) {
+      charts[key].destroy();
+      delete charts[key];
+    }
+  }
+
+  // Height for a horizontal bar chart, based on the number of bars
+  const barsHeight = count => Math.max(140, count * 42 + 40);
+
+  // ---------- BQ renderers ----------
+
+  // BQ 3: headline card (the backend returns only the most abandoned step)
+  function renderBq3(data) {
+    const box = document.getElementById('bq3');
+    if (!data) return showEmpty(box);
+
+    const rate = data.abandonmentRate * 100;
+    box.innerHTML = `
+      <div class="hero">${esc(data.step)}</div>
+      <div class="hero-sub">${pct(rate)} abandonment rate · ${data.abandonments} of ${data.reached} users left at this step</div>
+      <div class="meter" role="img" aria-label="Abandonment rate ${pct(rate)}">
+        <div style="width:${Math.min(rate, 100)}%"></div>
+      </div>`;
+  }
+
+  // BQ 5: column chart by duration range, the lowest coverage highlighted
+  function renderBq5(rows) {
+    const box = document.getElementById('bq5');
+    if (!rows || rows.length === 0) {
+      clearChart('bq5');
+      return showEmpty(box);
+    }
+
+    // Put the ranges back in their natural order
+    const sorted = [...rows].sort(
+      (a, b) => DURATION_ORDER.indexOf(a.durationRange) - DURATION_ORDER.indexOf(b.durationRange));
+    const lowest = Math.min(...sorted.map(r => r.coveragePercent));
+
+    drawChart('bq5', newCanvas(box, 260), {
+      type: 'bar',
+      data: {
+        labels: sorted.map(r => `${r.durationRange} min`),
+        datasets: [{
+          data: sorted.map(r => r.coveragePercent),
+          backgroundColor: sorted.map(r => r.coveragePercent === lowest ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = sorted[ctx.dataIndex];
+                return [`Coverage: ${pct(r.coveragePercent)}`, `Gaps: ${r.gapCount}`,
+                        `Free time: ${minutes(r.totalGapMinutes)}`, `Matched: ${minutes(r.totalMatchedMinutes)}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the duration range with the lowest coverage.</p>');
+  }
+
+  // BQ 7: two horizontal bars (matches vs open tables), the winner highlighted
+  function renderBq7(data) {
+    const box = document.getElementById('bq7');
+    if (!data) {
+      clearChart('bq7');
+      return showEmpty(box);
+    }
+
+    const winnerText = { MATCHES: 'Winner: Matches', OPEN_TABLES: 'Winner: Open tables', TIE: 'Tie' }[data.winner];
+    const colors = [
+      data.winner === 'MATCHES' ? ACCENT : GRAY,
+      data.winner === 'OPEN_TABLES' ? ACCENT : GRAY
+    ];
+
+    box.innerHTML = `<span class="winner">${esc(winnerText)}</span>`;
+    const holder = document.createElement('div');
+    box.appendChild(holder);
+
+    drawChart('bq7', newCanvas(holder, 150), {
+      type: 'bar',
+      data: {
+        labels: ['Matches', 'Open tables'],
+        datasets: [{
+          data: [data.matchCompletionPercent, data.openTableCompletionPercent],
+          backgroundColor: colors,
+          borderRadius: 4,
+          maxBarThickness: 34,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 50 } },
+        scales: {
+          x: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataIndex === 0
+                ? `${data.completedMatches} of ${data.totalMatches} matches completed`
+                : `${data.completedOpenTables} of ${data.totalOpenTables} open tables completed`
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', `<p class="note">
+      Matches: ${data.completedMatches} of ${data.totalMatches} completed ·
+      Open tables: ${data.completedOpenTables} of ${data.totalOpenTables} completed</p>`);
+  }
+
+  // BQ 11: horizontal bars ranked by number of students per building
+  function renderBq11(rows) {
+    const box = document.getElementById('bq11');
+    if (!rows || rows.length === 0) {
+      clearChart('bq11');
+      return showEmpty(box);
+    }
+
+    const sorted = [...rows].sort((a, b) => b.studentCount - a.studentCount);
+
+    drawChart('bq11', newCanvas(box, barsHeight(sorted.length)), {
+      type: 'bar',
+      data: {
+        labels: sorted.map(r => r.buildingName),
+        datasets: [{
+          data: sorted.map(r => r.studentCount),
+          backgroundColor: sorted.map((r, i) => i === 0 ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 28,
+          showValues: true,
+          formatValue: v => `${v} students`
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 80 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = sorted[ctx.dataIndex];
+                return [`Students: ${r.studentCount}`, `Gaps: ${r.gapCount}`, `Free time: ${minutes(r.totalGapMinutes)}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // BQ 12: horizontal bars ranked by unmatched free time rate per (career, semester)
+  function renderBq12(rows) {
+    const box = document.getElementById('bq12');
+    if (!rows || rows.length === 0) {
+      clearChart('bq12');
+      return showEmpty(box);
+    }
+
+    // The backend already sends them sorted, highest rate first
+    drawChart('bq12', newCanvas(box, barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => `${r.career || 'No career'} · Sem ${r.semester ?? '-'}`),
+        datasets: [{
+          data: rows.map(r => r.unmatchedRate * 100),
+          backgroundColor: rows.map((r, i) => i === 0 ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 28,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 50 } },
+        scales: {
+          x: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Unmatched rate: ${pct(r.unmatchedRate * 100)}`, `Students: ${r.students}`,
+                        `Gaps: ${r.totalGaps} (${r.unmatchedGaps} without match)`,
+                        `Unmatched time: ${minutes(r.unmatchedMinutes)} of ${minutes(r.totalGapMinutes)}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // BQ 13: largest free group per interest drawn over the total students with that interest
+  function renderBq13(rows) {
+    const box = document.getElementById('bq13');
+    if (!rows || rows.length === 0) {
+      clearChart('bq13');
+      return showEmpty(box);
+    }
+
+    const holder = document.createElement('div');
+    box.innerHTML = '';
+    box.appendChild(holder);
+
+    drawChart('bq13', newCanvas(holder, barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.interestName),
+        datasets: [
+          {
+            // Front bar: largest group free at the same time
+            label: 'Largest group free at the same time',
+            data: rows.map(r => r.largestGroupSize),
+            backgroundColor: ACCENT,
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 1,
+            showValues: false
+          },
+          {
+            // Back bar: all students with the interest
+            label: 'Students with the interest',
+            data: rows.map(r => r.studentsWithInterest),
+            backgroundColor: ACCENT_SOFT,
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 2,
+            showValues: true,
+            formatValue: v => v
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 40 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            mode: 'index',
+            callbacks: {
+              label: ctx => ctx.datasetIndex === 0
+                ? `Largest group: ${ctx.raw} students`
+                : `Students with the interest: ${ctx.raw}`,
+              afterBody: items => `Peak time: ${dateTime(rows[items[0].dataIndex].peakTime)}`
+            }
+          }
+        }
+      }
+    });
+
+    // Detail table: shows the peak time, which does not fit in the chart
+    const tableRows = rows.map(r => `
+      <tr>
+        <td>${esc(r.interestName)}</td>
+        <td>${r.largestGroupSize} of ${r.studentsWithInterest}</td>
+        <td>${esc(dateTime(r.peakTime))}</td>
+      </tr>`).join('');
+    box.insertAdjacentHTML('beforeend', `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Interest</th><th>Largest free group</th><th>Peak time</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`);
+  }
+
+  // ---------- Loading ----------
+
+  const sinceInput = document.getElementById('since');
+  const limitInput = document.getElementById('limit');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const autoRefresh = document.getElementById('autoRefresh');
+  const lastUpdate = document.getElementById('lastUpdate');
+  const errorBox = document.getElementById('error');
+  let timer = null;
+
+  // Builds the request URL with the optional filters
+  function buildUrl() {
+    const params = new URLSearchParams();
+    if (sinceInput.value) params.set('since', sinceInput.value.length === 16 ? `${sinceInput.value}:00` : sinceInput.value);
+    if (limitInput.value && Number(limitInput.value) > 0) params.set('limit', limitInput.value);
+    const query = params.toString();
+    return query ? `${API_URL}?${query}` : API_URL;
+  }
+
+  // Calls the backend once and redraws every card
+  async function loadDashboard() {
+    refreshBtn.disabled = true;
+    try {
+      const response = await fetch(buildUrl());
+      if (!response.ok) throw new Error(`The backend answered ${response.status}`);
+      const data = await response.json();
+
+      renderBq3(data.mostAbandonedStep);
+      renderBq5(data.gapCoverageByDuration);
+      renderBq7(data.connectionMethods);
+      renderBq11(data.buildingsByGapPresence);
+      renderBq12(data.unmatchedFreeTimeByCareerSemester);
+      renderBq13(data.interestsByLargestFreeGroup);
+
+      errorBox.hidden = true;
+      lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
+    } catch (e) {
+      errorBox.textContent = `Could not load the dashboard (${e.message}). Make sure the backend and the database are running.`;
+      errorBox.hidden = false;
+      lastUpdate.textContent = 'Update failed';
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  }
+
+  // Starts or stops the automatic refresh
+  function setAutoRefresh() {
+    clearInterval(timer);
+    timer = autoRefresh.checked ? setInterval(loadDashboard, REFRESH_MS) : null;
+  }
+
+  // Events: refresh button, filters and auto refresh toggle
+  refreshBtn.addEventListener('click', loadDashboard);
+  sinceInput.addEventListener('change', loadDashboard);
+  limitInput.addEventListener('change', loadDashboard);
+  autoRefresh.addEventListener('change', setAutoRefresh);
+
+  // First load
+  loadDashboard();
+  setAutoRefresh();
+</script>
+</body>
+</html>

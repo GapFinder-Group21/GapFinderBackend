@@ -1,10 +1,12 @@
 package com.backend.gapfinder.services;
 
+import com.backend.gapfinder.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.exceptions.NotFoundException;
 import com.backend.gapfinder.repositories.GapRepository;
+import com.backend.gapfinder.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
 
 import lombok.extern.slf4j.Slf4j;
@@ -21,10 +23,12 @@ public class AnalyticsService {
 
     private final OpenTableAbandonmentService abandonmentService;
     private final GapRepository gapRepository;
+    private final UserLocationLogRepository locationLogRepository;
 
-    public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository) {
+    public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository, UserLocationLogRepository locationLogRepository) {
         this.abandonmentService = abandonmentService;
         this.gapRepository = gapRepository;
+        this.locationLogRepository = locationLogRepository;
     }
 
     // ==================== BQ 3 TYPE 2 GRUPAL ====================
@@ -149,4 +153,28 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+    
+    // ==================== BQ 11 ====================
+    // Joel: Where do the most students have free time on campus?
+
+    // Retrieves student presence and free time metrics aggregated by campus building
+    @Transactional(readOnly = true)
+    public List<BuildingGapPresenceResponseDTO> getBuildingsByGapPresence() {
+        log.info("Inicia proceso de consultar la presencia de estudiantes en gaps por edificio");
+
+        List<BuildingGapPresenceResponseDTO> result = locationLogRepository.findGapPresenceByBuilding().stream()
+                .map(p -> new BuildingGapPresenceResponseDTO(
+                        p.getBuildingId(),
+                        p.getBuildingName(),
+                        p.getStudentCount(),
+                        p.getGapCount(),
+                        p.getTotalGapMinutes()))
+                .toList();
+
+        log.info("Termina proceso de consultar la presencia de estudiantes en gaps por edificio");
+        return result;
+    }
+
+    // ================== END BQ 11 ==================
 }

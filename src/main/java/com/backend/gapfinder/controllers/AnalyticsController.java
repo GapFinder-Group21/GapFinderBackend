@@ -2,8 +2,11 @@ package com.backend.gapfinder.controllers;
 
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.services.AnalyticsService;
+import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
+
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
@@ -27,4 +30,16 @@ public class AnalyticsController {
 
         return analyticsService.getMostAbandonedStep(since);
     }
+
+    
+    // ==================== BQ 5 ====================
+
+    // Get match coverage metrics grouped by gap duration, sorted by lowest coverage
+    // GET /analytics/gap-coverage/by-duration
+    @GetMapping("/gap-coverage/by-duration")
+    public List<GapCoverageResponseDTO> getMatchCoverageByGapDuration() {
+        return analyticsService.getMatchCoverageByGapDuration();
+    }
+
+    // ================== END BQ 5 ==================
 }

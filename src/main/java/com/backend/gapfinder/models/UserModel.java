@@ -9,9 +9,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
@@ -33,6 +30,13 @@ public class UserModel extends BaseModel {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // BCrypt hash of the password (the plain password is never stored)
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+    
+    // Whether the account has been verified (e.g. by email confirmation)
+    @Column(nullable = false)
+    private boolean verified = false;
 
     // Contact phone number
     @Column(name = "phone_number", nullable = true)
@@ -73,4 +77,8 @@ public class UserModel extends BaseModel {
     @Column(name = "location_updated_at", nullable = true)
     private LocalDateTime locationUpdatedAt;
 
+    // Preferred effort level for activities (used in match scoring)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "preferred_effort", nullable = true)
+    private EffortTypeEnum preferredEffort;
 }

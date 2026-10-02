@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controllers;
 
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.services.AnalyticsService;
 import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
@@ -82,4 +83,20 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 11 ==================
+
+    // ==================== BQ 13 INDIVIDUAL ====================
+
+    // Which interests are shared by the largest groups of students who are free at the same time?
+    // Get the interests ranked by the largest group of students sharing them who are free at the same time
+    // GET /analytics/interests/largest-free-groups?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
+    @GetMapping("/interests/largest-free-groups")
+    public List<SharedInterestGroupStatsBasicDTO> getInterestsByLargestFreeGroup(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getInterestsByLargestFreeGroup(from, to, limit);
+    }
+
+    // ================== END BQ 13 INDIVIDUAL ==================
 }

@@ -42,10 +42,15 @@ public class MatchController {
     }
 
     // Find scored candidate gaps for a given gap, sorted from best to worst
-    // GET /matches/gap/{gapId}/candidates
+    // GET /matches/gap/{gapId}/candidates?useSameCareer=true&useSharedInterests=true&useEffort=false
     @GetMapping("/gap/{gapId}/candidates")
-    public List<MatchCandidateResponseDTO> findCandidates(@PathVariable Long gapId) {
-        return matchService.findCandidates(gapId);
+    public List<MatchCandidateResponseDTO> findCandidates(
+            @PathVariable Long gapId,
+            @RequestParam(defaultValue = "false") boolean useSameCareer,
+            @RequestParam(defaultValue = "false") boolean useSharedInterests,
+            @RequestParam(defaultValue = "false") boolean useEffort) {
+
+        return matchService.findCandidates(gapId, useSameCareer, useSharedInterests, useEffort);
     }
 
     // Send a match request between two gaps using an already calculated score

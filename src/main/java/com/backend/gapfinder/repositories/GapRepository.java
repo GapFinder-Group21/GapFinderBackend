@@ -1,6 +1,7 @@
 package com.backend.gapfinder.repositories;
 
 import com.backend.gapfinder.models.GapModel;
+import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -55,6 +56,42 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
            "AND g.startTime >= :from AND g.startTime < :to")
     List<GapModel> findByUserAndStartBetween(
             @Param("userId") Long userId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    // BQ 12 INDIVIDUAL
+    // Free time and matched minutes per (career, semester) for the gaps between [from, to]
+    // A gap's matched minutes are capped at its own duration (same rule as findCoverageByDurationBucket)
+    @Query(value = """
+        SELECT u.career AS "career",
+            u.semester AS "semester",
+            CAST(COUNT(DISTINCT u.id) AS bigint) AS "students",
+            CAST(COUNT(*) AS bigint) AS "totalGaps",
+            CAST(SUM(CASE WHEN per_gap.match_count = 0 THEN 1 ELSE 0 END) AS bigint) AS "unmatchedGaps",
+            CAST(SUM(per_gap.gap_minutes) AS double precision) AS "totalGapMinutes",
+            CAST(SUM(per_gap.covered_minutes) AS double precision) AS "matchedMinutes"
+        FROM (
+            SELECT g.id,
+                g.user_id,
+                COUNT(m.id) AS match_count,
+                EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 AS gap_minutes,
+                LEAST(
+                    COALESCE(SUM(EXTRACT(EPOCH FROM (m.end_time - m.start_time)) / 60), 0),
+                    EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60
+                ) AS covered_minutes
+            FROM gaps g
+            LEFT JOIN matches m
+                ON (m.proposer_gap_id = g.id OR m.acceptor_gap_id = g.id)
+                AND m.status IN ('ACCEPTED', 'COMPLETED')
+            WHERE g.start_time >= :from
+              AND g.end_time <= :to
+            GROUP BY g.id
+        ) per_gap
+        JOIN users u ON u.id = per_gap.user_id
+        GROUP BY u.career, u.semester
+        """, nativeQuery = true)
+    List<UnmatchedFreeTimeProjection> findFreeTimeByCareerAndSemester(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );

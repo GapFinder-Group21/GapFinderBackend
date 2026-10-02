@@ -16,4 +16,7 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
 
     // Check if a gap is used by any match, as proposer or acceptor
     boolean existsByProposerGapIdOrAcceptorGapId(Long proposerGapId, Long acceptorGapId);
+
+    // Count the matches with a given status (BQ 7)
+    long countByStatus(MatchStatusEnum status);
 }

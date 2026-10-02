@@ -1,9 +1,14 @@
 package com.backend.gapfinder.services;
 
+import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.enums.MatchStatusEnum;
+import com.backend.gapfinder.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.exceptions.NotFoundException;
 import com.backend.gapfinder.repositories.GapRepository;
+import com.backend.gapfinder.repositories.MatchRepository;
+import com.backend.gapfinder.repositories.OpenTableRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,10 +24,15 @@ public class AnalyticsService {
 
     private final OpenTableAbandonmentService abandonmentService;
     private final GapRepository gapRepository;
+    private final MatchRepository matchRepository;
+    private final OpenTableRepository openTableRepository;
 
-    public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository) {
+    public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository,
+                            MatchRepository matchRepository, OpenTableRepository openTableRepository) {
         this.abandonmentService = abandonmentService;
         this.gapRepository = gapRepository;
+        this.matchRepository = matchRepository;
+        this.openTableRepository = openTableRepository;
     }
 
     // ==================== BQ 3 TYPE 2 GRUPAL ====================
@@ -83,4 +93,45 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 5 ==================
+
+    // ==================== BQ 7 ====================
+    // Sofia Arias: Which connection method leads to more accepted meetups: open tables or matches?
+
+    // Compares the percentage of completed matches against the percentage of completed open tables
+    @Transactional(readOnly = true)
+    public ConnectionMethodResponseDTO compareConnectionMethods() {
+        log.info("Inicia proceso de comparar los métodos de conexión (matches vs open tables)");
+
+        long completedMatches = matchRepository.countByStatus(MatchStatusEnum.COMPLETED);
+        long totalMatches = matchRepository.count();
+        long completedOpenTables = openTableRepository.countByStatus(OpenTableStatusEnum.COMPLETED);
+        long totalOpenTables = openTableRepository.count();
+
+        double matchPercent = calculateCompletionPercent(completedMatches, totalMatches);
+        double openTablePercent = calculateCompletionPercent(completedOpenTables, totalOpenTables);
+
+        ConnectionMethodResponseDTO dto = new ConnectionMethodResponseDTO();
+        dto.setCompletedMatches(completedMatches);
+        dto.setTotalMatches(totalMatches);
+        dto.setMatchCompletionPercent(matchPercent);
+        dto.setCompletedOpenTables(completedOpenTables);
+        dto.setTotalOpenTables(totalOpenTables);
+        dto.setOpenTableCompletionPercent(openTablePercent);
+        dto.setWinner(matchPercent > openTablePercent ? "MATCHES"
+                : openTablePercent > matchPercent ? "OPEN_TABLES" : "TIE");
+
+        log.info("Termina proceso de comparar los métodos de conexión (matches vs open tables)");
+        return dto;
+    }
+
+    // Calculates the completion percentage based on completed and total records
+    private double calculateCompletionPercent(long completed, long total) {
+        if (total <= 0) {
+            return 0.0;
+        }
+
+        return (double) completed / total * 100;
+    }
+
+    // ================== END BQ 7 ==================
 }

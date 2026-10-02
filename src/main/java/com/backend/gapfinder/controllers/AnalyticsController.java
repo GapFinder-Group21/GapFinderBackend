@@ -2,6 +2,7 @@ package com.backend.gapfinder.controllers;
 
 import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.services.AnalyticsService;
+import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
 
 
@@ -42,4 +43,15 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 5 ==================
+
+    // ==================== BQ 7 ====================
+
+    // Compare the completion percentage of matches and open tables to see which leads to more meetups
+    // GET /analytics/connection-methods/accepted-meetups
+    @GetMapping("/connection-methods/accepted-meetups")
+    public ConnectionMethodResponseDTO compareConnectionMethods() {
+        return analyticsService.compareConnectionMethods();
+    }
+
+    // ================== END BQ 7 ==================
 }

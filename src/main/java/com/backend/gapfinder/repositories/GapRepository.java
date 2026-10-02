@@ -1,6 +1,7 @@
 package com.backend.gapfinder.repositories;
 
 import com.backend.gapfinder.models.GapModel;
+import com.backend.gapfinder.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -92,6 +93,41 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
         GROUP BY u.career, u.semester
         """, nativeQuery = true)
     List<UnmatchedFreeTimeProjection> findFreeTimeByCareerAndSemester(
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to
+    );
+
+    // BQ 13 INDIVIDUAL
+    // Largest group of students sharing each interest who are free at the same time, for the gaps starting in [from, to)
+    // The candidate moments are the gap starts: at each one, count the distinct students with the interest whose gap covers it
+    @Query(value = """
+        SELECT ranked."interestId",
+            ranked."interestName",
+            ranked."largestGroupSize",
+            ranked."peakTime",
+            (SELECT CAST(COUNT(*) AS bigint) FROM user_interests x
+             WHERE x.interest_id = ranked."interestId") AS "studentsWithInterest"
+        FROM (
+            SELECT i.id AS "interestId",
+                i.name AS "interestName",
+                CAST(COUNT(DISTINCT g2.user_id) AS bigint) AS "largestGroupSize",
+                g.start_time AS "peakTime",
+                ROW_NUMBER() OVER (
+                    PARTITION BY i.id
+                    ORDER BY COUNT(DISTINCT g2.user_id) DESC, g.start_time
+                ) AS rn
+            FROM interests i
+            JOIN user_interests ui ON ui.interest_id = i.id
+            JOIN gaps g ON g.user_id = ui.user_id
+            JOIN gaps g2 ON g2.start_time <= g.start_time AND g2.end_time > g.start_time
+            JOIN user_interests ui2 ON ui2.user_id = g2.user_id AND ui2.interest_id = i.id
+            WHERE g.start_time >= :from
+              AND g.start_time < :to
+            GROUP BY i.id, i.name, g.start_time
+        ) ranked
+        WHERE ranked.rn = 1
+        """, nativeQuery = true)
+    List<SharedInterestGroupProjection> findLargestFreeGroupByInterest(
             @Param("from") LocalDateTime from,
             @Param("to") LocalDateTime to
     );

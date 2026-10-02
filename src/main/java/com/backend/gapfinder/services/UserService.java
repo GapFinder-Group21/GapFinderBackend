@@ -1,6 +1,7 @@
 package com.backend.gapfinder.services;
 
 import com.backend.gapfinder.exceptions.NotFoundException;
+import com.backend.gapfinder.models.BuildingModel;
 import com.backend.gapfinder.models.InterestModel;
 import com.backend.gapfinder.models.UserModel;
 import com.backend.gapfinder.repositories.UserRepository;
@@ -18,10 +19,13 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final InterestService interestService;
+    private final BuildingService buildingService;
 
-    public UserService(UserRepository userRepository, InterestService interestService) {
+    public UserService(UserRepository userRepository, InterestService interestService,
+                        BuildingService buildingService) {
         this.userRepository = userRepository;
         this.interestService = interestService;
+        this.buildingService = buildingService;
     }
 
     // Get a user by its id
@@ -48,6 +52,7 @@ public class UserService {
 
         user.setId(null);
         user.setInterests(resolveInterests(user.getInterests()));
+        user.setCurrentBuilding(resolveCurrentBuilding(user.getCurrentBuilding()));
 
         log.info("Termina proceso de creación de un usuario con nombre = {}", user.getName());
         return userRepository.save(user);
@@ -65,6 +70,7 @@ public class UserService {
         existente.setPhoneNumber(user.getPhoneNumber());
         existente.setCareer(user.getCareer());
         existente.setInterests(resolveInterests(user.getInterests()));
+        existente.setCurrentBuilding(resolveCurrentBuilding(user.getCurrentBuilding()));
 
         log.info("Termina proceso de actualización del usuario con id = {}", id);
         return userRepository.save(existente);
@@ -101,6 +107,15 @@ public class UserService {
         return interests.stream()
                 .map(interest -> interestService.getById(interest.getId()))
                 .toList();
+    }
+
+    // Resolve the current building from the id provided, if any
+    private BuildingModel resolveCurrentBuilding(BuildingModel currentBuilding) {
+        if (currentBuilding == null || currentBuilding.getId() == null) {
+            return null;
+        }
+
+        return buildingService.getById(currentBuilding.getId());
     }
 
     // Add an interest to an existing user

@@ -90,6 +90,23 @@ public class NearbyFriendsService {
         return nearby;
     }
 
+    // Returns the accepted friends currently in the user's current building
+    @Transactional(readOnly = true)
+    public List<UserModel> getNearbyFriends(Long userId) {
+        log.info("Inicia proceso de consultar los amigos cercanos del usuario {}", userId);
+
+        UserModel user = userService.getById(userId);
+
+        if (user.getCurrentBuilding() == null) {
+            return List.of();
+        }
+
+        List<UserModel> nearby = findNearbyFriends(userId, user.getCurrentBuilding().getId());
+
+        log.info("Termina proceso de consultar los amigos cercanos del usuario {}", userId);
+        return nearby;
+    }
+
     // Filters the user's accepted friends by building and recent location update
     private List<UserModel> findNearbyFriends(Long userId, Long buildingId) {
         LocalDateTime since = LocalDateTime.now().minusMinutes(RECENT_MINUTES);

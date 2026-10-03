@@ -14074,3 +14074,81 @@ DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;
 DROP TABLE IF EXISTS pg_temp.seed_participants;
 DROP TABLE IF EXISTS pg_temp.seed_run;
+-- ---------- simulated match activity (runs on EVERY startup, not only the first one)
+-- The seed only creates the matches that already started when it is loaded, so the gaps that end
+-- afterwards would never get one. On every startup this creates the matches the seed users would have had
+-- in the gaps that already ended: 2-hour slots between 06:00 and 22:00, a user takes part in a slot with a
+-- probability that depends on their career (BQ 12), and the users of a slot are paired by start time.
+-- A user is skipped in a slot where they already have a match, so running it again creates nothing new.
+-- Only past matches (COMPLETED or REJECTED), no notifications.
+WITH seed_users AS (
+    SELECT u.id, u.career
+    FROM users u
+    WHERE u.password_hash = '$2a$10$SkID9TwSPunoci1Ru0/Dj.oXIEnTVH7JsXv4Y9W1HslZogKZgVgP.'
+),
+career_rate (career, pct) AS (VALUES
+    ('Systems and Computing Engineering', 95), ('Industrial Engineering', 90), ('Medicine', 90),
+    ('Psychology', 80), ('Business Administration', 75), ('Economics', 70), ('Design', 65),
+    ('Chemical Engineering', 60), ('Mechanical Engineering', 50), ('Electronic Engineering', 50),
+    ('Biomedical Engineering', 50), ('Architecture', 40), ('Civil Engineering', 40),
+    ('Mathematics', 30), ('Political Science', 30), ('Environmental Engineering', 25),
+    ('Biology', 25), ('Art', 25), ('Music', 25), ('Physics', 15), ('Literature', 15),
+    ('International Accounting', 15), ('Law', 5)
+),
+busy AS MATERIALIZED (
+    SELECT g.user_id, m.start_time, m.end_time
+    FROM matches m
+    JOIN gaps g ON g.id = m.proposer_gap_id
+    UNION ALL
+    SELECT g.user_id, m.start_time, m.end_time
+    FROM matches m
+    JOIN gaps g ON g.id = m.acceptor_gap_id
+),
+slots AS (
+    SELECT s AS slot_start, s + INTERVAL '2 hours' AS slot_end
+    FROM generate_series(
+        date_trunc('day', (SELECT MIN(g.start_time) FROM gaps g JOIN seed_users su ON su.id = g.user_id)),
+        LOCALTIMESTAMP,
+        INTERVAL '2 hours') AS s
+    WHERE s::time BETWEEN TIME '06:00' AND TIME '20:00'
+),
+candidates AS (
+    SELECT DISTINCT ON (g.user_id, sl.slot_start)
+        g.id AS gap_id, g.user_id, sl.slot_start,
+        GREATEST(g.start_time, sl.slot_start) AS free_from,
+        LEAST(g.end_time, sl.slot_end) AS free_to
+    FROM gaps g
+    JOIN seed_users su ON su.id = g.user_id
+    LEFT JOIN career_rate cr ON cr.career = su.career
+    JOIN slots sl ON g.start_time < sl.slot_end AND g.end_time > sl.slot_start
+    WHERE g.end_time <= LOCALTIMESTAMP
+      AND LEAST(g.end_time, sl.slot_end) - GREATEST(g.start_time, sl.slot_start) >= INTERVAL '30 minutes'
+      AND (hashtext(g.user_id || '@' || sl.slot_start) & 2147483647) % 100 < COALESCE(cr.pct, 20)
+      AND NOT EXISTS (
+          SELECT 1
+          FROM busy b
+          WHERE b.user_id = g.user_id
+            AND b.start_time < sl.slot_end
+            AND b.end_time > sl.slot_start)
+    ORDER BY g.user_id, sl.slot_start, LEAST(g.end_time, sl.slot_end) - GREATEST(g.start_time, sl.slot_start) DESC
+),
+ranked AS (
+    SELECT c.*, ROW_NUMBER() OVER (PARTITION BY c.slot_start ORDER BY c.free_from, c.free_to, c.user_id) AS rn
+    FROM candidates c
+),
+pairs AS (
+    SELECT p.gap_id AS proposer_gap_id, a.gap_id AS acceptor_gap_id,
+        GREATEST(p.free_from, a.free_from) AS start_time,
+        LEAST(p.free_to, a.free_to) AS free_to,
+        hashtext(p.gap_id || '-' || a.gap_id) & 2147483647 AS h
+    FROM ranked p
+    JOIN ranked a ON a.slot_start = p.slot_start AND a.rn = p.rn + 1
+    WHERE p.rn % 2 = 1
+      AND LEAST(p.free_to, a.free_to) - GREATEST(p.free_from, a.free_from) >= INTERVAL '30 minutes'
+)
+INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status)
+SELECT pr.proposer_gap_id, pr.acceptor_gap_id, pr.start_time,
+    LEAST(pr.free_to, pr.start_time + make_interval(mins => (ARRAY[60, 90, 120, 120, 120])[pr.h % 5 + 1])),
+    (60 + pr.h % 190)::float8,
+    CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END
+FROM pairs pr;

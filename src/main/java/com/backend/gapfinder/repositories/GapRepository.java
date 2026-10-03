@@ -23,6 +23,7 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
     );
 
     // Coverage per gap duration bucket: gap count, total gap minutes, total matched minutes
+    // Only gaps that already ended are counted: matches happen in real time, so a future gap cannot have one yet
     @Query(value = """
         SELECT per_gap.duration_range,
             COUNT(*) AS gap_count,
@@ -46,6 +47,7 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
             LEFT JOIN matches m
                 ON (m.proposer_gap_id = g.id OR m.acceptor_gap_id = g.id)
                 AND m.status IN ('ACCEPTED', 'COMPLETED')
+            WHERE g.end_time <= LOCALTIMESTAMP
             GROUP BY g.id
         ) per_gap
         GROUP BY per_gap.duration_range

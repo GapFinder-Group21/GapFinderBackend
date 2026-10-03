@@ -8341,7 +8341,8 @@ ON CONFLICT DO NOTHING
 RETURNING id
 )
 INSERT INTO seed_friendships (id) SELECT id FROM ins;
--- ---------- matches (status depends on whether the end time already passed when loading)
+-- ---------- matches (only the ones already started when loading; finished ones are COMPLETED or REJECTED,
+-- one in progress is ACCEPTED, so a user has at most 1 ACCEPTED and no PENDING)
 WITH ins AS (
 INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status)
 SELECT pg.id, ag.id, (date_trunc('week', LOCALTIMESTAMP) + make_interval(mins => (v.ms)::int)), (date_trunc('week', LOCALTIMESTAMP) + make_interval(mins => (v.me)::int)), v.score::float8, CASE WHEN (date_trunc('week', LOCALTIMESTAMP) + make_interval(mins => (v.me)::int)) <= LOCALTIMESTAMP THEN v.past ELSE v.fut END
@@ -9057,6 +9058,8 @@ JOIN gaps pg ON pg.user_id = pu.id AND pg.start_time = (date_trunc('week', LOCAL
 JOIN users au ON au.email = v.ae
 JOIN gaps ag ON ag.user_id = au.id AND ag.start_time = (date_trunc('week', LOCALTIMESTAMP) + make_interval(mins => (v.ast)::int))
 WHERE (SELECT go FROM seed_run)
+-- Matches happen in real time: only the ones that already started when loading are created
+AND (date_trunc('week', LOCALTIMESTAMP) + make_interval(mins => (v.ms)::int)) <= LOCALTIMESTAMP
 
 RETURNING id
 )

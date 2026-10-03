@@ -43,9 +43,10 @@ public interface UserLocationLogRepository extends JpaRepository<UserLocationLog
     Optional<FavoriteBuildingProjection> findFavoriteBuilding(@Param("userId") Long userId);
 
         // Calculates current student presence and free time metrics per building based on location logs during gaps
+        // Buildings split in numbered parts (e.g. "Bobo 1" and "Bobo 2") count as one building without the number
     @Query(value = """
-        SELECT b.id AS buildingId,
-               b.name AS buildingName,
+        SELECT MIN(b.id) AS buildingId,
+               regexp_replace(b.name, '[[:space:]]+[0-9]+$', '') AS buildingName,
                COUNT(DISTINCT x.user_id) AS studentCount,
                COUNT(*) AS gapCount,
                COALESCE(SUM(x.gap_minutes), 0) AS totalGapMinutes
@@ -60,7 +61,7 @@ public interface UserLocationLogRepository extends JpaRepository<UserLocationLog
             ORDER BY g.id, l.timestamp DESC
         ) x
         JOIN buildings b ON b.id = x.building_id
-        GROUP BY b.id, b.name
+        GROUP BY regexp_replace(b.name, '[[:space:]]+[0-9]+$', '')
         ORDER BY studentCount DESC, totalGapMinutes DESC
         """, nativeQuery = true)
     List<BuildingGapPresenceProjection> findGapPresenceByBuilding();

@@ -1,5 +1,6 @@
 package com.backend.gapfinder.controller.controllers;
 
+import com.backend.gapfinder.view.dto.AppOpenDelayDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -99,4 +100,16 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 13 INDIVIDUAL ==================
+
+    // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
+
+    // How long after a gap starts do students open the app?
+    // Get the minutes after a gap starts at which the reminder should be sent to the user
+    // GET /analytics/app-open-delay/user/{userId}
+    @GetMapping("/app-open-delay/user/{userId}")
+    public AppOpenDelayDTO getAppOpenDelay(@PathVariable Long userId) {
+        return analyticsService.getAppOpenDelay(userId);
+    }
+
+    // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
 }

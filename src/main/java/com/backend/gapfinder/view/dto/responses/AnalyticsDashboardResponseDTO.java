@@ -1,5 +1,6 @@
 package com.backend.gapfinder.view.dto.responses;
 
+import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -14,6 +15,9 @@ public class AnalyticsDashboardResponseDTO {
 
     // BQ 3: creation step with the highest abandonment rate (null if there are no abandonments)
     private OpenTableAbandonmentStatsBasicDTO mostAbandonedStep;
+
+    // BQ 4: minutes after a gap starts at which the app is first opened, per range (null if there are no finished gaps)
+    private AppOpenDelayStatsDTO appOpenDelay;
 
     // BQ 5: match coverage per gap duration, lowest coverage first
     private List<GapCoverageResponseDTO> gapCoverageByDuration;

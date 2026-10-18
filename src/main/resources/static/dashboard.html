@@ -149,7 +149,7 @@
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
     <div class="filter-group">
-      <span>Period (BQ 3, 12 and 13)</span>
+      <span>Period (BQ 3, 4, 12 and 13)</span>
       <div class="period" id="period">
         <button data-days="7">Last 7 days</button>
         <button data-days="30" class="active">Last 30 days</button>
@@ -178,6 +178,11 @@
         <div class="bq-tag">BQ 3</div>
         <p class="question">At which step do students most often leave the Open Table creation process?</p>
         <div id="bq3"></div>
+      </div>
+      <div class="card">
+        <div class="bq-tag">BQ 4</div>
+        <p class="question">How long after a gap starts do students open the app?</p>
+        <div id="bq4"></div>
       </div>
       <div class="card">
         <div class="bq-tag">BQ 5</div>
@@ -248,6 +253,9 @@
 
   // Natural order of the BQ 5 duration ranges (the backend sends them sorted by coverage)
   const DURATION_ORDER = ['<30', '30-60', '60-120', '120-180', '180+'];
+
+  // Labels of the BQ 4 ranges sent by the backend (the backend already sends them in natural order)
+  const OPEN_DELAY_LABELS = { '0-5': '0-5 min', '5-15': '5-15 min', '15-30': '15-30 min', '30+': '30+ min', 'No abrió': 'Did not open' };
 
   // Charts currently on screen, so they can be destroyed before drawing them again
   const charts = {};
@@ -356,6 +364,58 @@
       <div class="meter" role="img" aria-label="Abandonment rate ${pct(rate)}">
         <div style="width:${Math.min(rate, 100)}%"></div>
       </div>`;
+  }
+
+  // BQ 4: headline (most frequent range and average minutes) and a small column chart of the percentage per range
+  function renderBq4(data) {
+    const box = document.getElementById('bq4');
+    if (!data) {
+      clearChart('bq4');
+      return showEmpty(box);
+    }
+
+    const rows = data.distribution;
+    const average = data.globalAverageMinutes != null ? `${data.globalAverageMinutes.toFixed(1)} min on average` : 'no app openings yet';
+    const hero = data.mostFrequentRange ? OPEN_DELAY_LABELS[data.mostFrequentRange] : 'Nobody opened the app';
+
+    box.innerHTML = `
+      <div class="hero">${esc(hero)}</div>
+      <div class="hero-sub">Most frequent range · ${esc(average)} (${data.globalGapsCounted} gaps with an opening)</div>
+      <div id="bq4Chart"></div>`;
+
+    drawChart('bq4', newCanvas(document.getElementById('bq4Chart'), 160), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => OPEN_DELAY_LABELS[r.range] || r.range),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map(r => r.range === data.mostFrequentRange ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 40,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of gaps: ${pct(r.percentage)}`, `Gaps: ${r.gaps}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the range where the app is most often opened for the first time.</p>');
   }
 
   // BQ 5: column chart by duration range, the lowest coverage highlighted
@@ -692,6 +752,7 @@
       if (myRequest !== requestNumber) return;
 
       renderBq3(data.mostAbandonedStep);
+      renderBq4(data.appOpenDelay);
       renderBq5(data.gapCoverageByDuration);
       renderBq7(data.connectionMethods);
       renderBq11(data.buildingsByGapPresence);

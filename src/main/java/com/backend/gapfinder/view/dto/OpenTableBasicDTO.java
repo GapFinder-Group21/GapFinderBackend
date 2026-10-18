@@ -31,4 +31,7 @@ public class OpenTableBasicDTO {
     // Activity proposed in the open table
     private ActivityBasicDTO activity;
 
+    // Relative URL of the open table photo
+    private String photoUrl;
+
 }

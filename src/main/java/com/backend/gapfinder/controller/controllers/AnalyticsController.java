@@ -1,5 +1,6 @@
 package com.backend.gapfinder.controller.controllers;
 
+import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -99,4 +100,28 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 13 INDIVIDUAL ==================
+
+    // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
+
+    // How long after a gap starts do students open the app?
+    // Get the distribution of the minutes after a gap starts at which the app is first opened
+    // GET /analytics/app-open-delay?since=2026-09-01T00:00:00
+    @GetMapping("/app-open-delay")
+    public AppOpenDelayStatsDTO getAppOpenDelay(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getAppOpenDelay(null, since);
+    }
+
+    // Same distribution plus the minutes after a gap starts at which the app should remind the user
+    // GET /analytics/app-open-delay/user/{userId}?since=2026-09-01T00:00:00
+    @GetMapping("/app-open-delay/user/{userId}")
+    public AppOpenDelayStatsDTO getAppOpenDelayForUser(
+            @PathVariable Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getAppOpenDelay(userId, since);
+    }
+
+    // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
 }

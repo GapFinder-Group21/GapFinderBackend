@@ -1,5 +1,6 @@
 package com.backend.gapfinder.model.facades;
 
+import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -40,6 +41,7 @@ public class AnalyticsFacade {
 
         AnalyticsDashboardResponseDTO dashboard = new AnalyticsDashboardResponseDTO();
         dashboard.setMostAbandonedStep(getMostAbandonedStepOrNull(start));
+        dashboard.setAppOpenDelay(getAppOpenDelayOrNull(start));
         dashboard.setGapCoverageByDuration(analyticsService.getMatchCoverageByGapDuration());
         dashboard.setConnectionMethods(analyticsService.compareConnectionMethods());
         dashboard.setBuildingsByGapPresence(analyticsService.getBuildingsByGapPresence());
@@ -56,6 +58,16 @@ public class AnalyticsFacade {
             return analyticsService.getMostAbandonedStep(since);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay abandonos registrados desde {}", since);
+            return null;
+        }
+    }
+
+    // BQ 4: returns null instead of failing when there are no finished gaps since the given date
+    private AppOpenDelayStatsDTO getAppOpenDelayOrNull(LocalDateTime since) {
+        try {
+            return analyticsService.getAppOpenDelay(null, since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay gaps terminados registrados desde {}", since);
             return null;
         }
     }

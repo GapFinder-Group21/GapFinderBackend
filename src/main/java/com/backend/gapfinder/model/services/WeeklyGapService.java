@@ -1,12 +1,12 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
-import com.backend.gapfinder.models.ClassBlockModel;
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.ClassBlockRepository;
-import com.backend.gapfinder.repositories.GapRepository;
-import com.backend.gapfinder.repositories.MatchRepository;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.ClassBlockRepository;
+import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.MatchRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;

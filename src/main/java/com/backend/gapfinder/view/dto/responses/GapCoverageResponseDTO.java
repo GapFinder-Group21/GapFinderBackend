@@ -1,4 +1,4 @@
-package com.backend.gapfinder.dto.responses;
+package com.backend.gapfinder.view.dto.responses;
 
 import lombok.Data;
 

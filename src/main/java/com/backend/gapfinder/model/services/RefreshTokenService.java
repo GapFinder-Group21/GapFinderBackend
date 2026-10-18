@@ -1,8 +1,8 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.models.RefreshTokenModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.RefreshTokenRepository;
+import com.backend.gapfinder.model.models.RefreshTokenModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.RefreshTokenRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

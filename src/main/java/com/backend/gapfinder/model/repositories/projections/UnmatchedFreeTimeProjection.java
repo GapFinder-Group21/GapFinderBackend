@@ -1,4 +1,4 @@
-package com.backend.gapfinder.repositories.projections;
+package com.backend.gapfinder.model.repositories.projections;
 
 // Projection with the free time metrics of a (career, semester) group
 public interface UnmatchedFreeTimeProjection {

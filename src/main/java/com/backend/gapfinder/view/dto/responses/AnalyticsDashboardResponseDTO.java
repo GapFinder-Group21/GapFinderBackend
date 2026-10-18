@@ -1,8 +1,8 @@
-package com.backend.gapfinder.dto.responses;
+package com.backend.gapfinder.view.dto.responses;
 
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
-import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 
 import lombok.Data;
 

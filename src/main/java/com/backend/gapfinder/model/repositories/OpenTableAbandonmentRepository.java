@@ -1,6 +1,6 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.models.OpenTableAbandonmentModel;
+import com.backend.gapfinder.model.models.OpenTableAbandonmentModel;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

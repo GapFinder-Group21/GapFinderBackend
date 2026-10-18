@@ -1,10 +1,10 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.exceptions.DuplicateClassBlockException;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.ClassBlockModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.ClassBlockRepository;
+import com.backend.gapfinder.model.exceptions.DuplicateClassBlockException;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.ClassBlockRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

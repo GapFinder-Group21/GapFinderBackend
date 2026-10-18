@@ -1,11 +1,11 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.adapters.AdaptedSchedule;
-import com.backend.gapfinder.adapters.ScheduleSource;
-import com.backend.gapfinder.dto.ClassBlockBasicDTO;
-import com.backend.gapfinder.dto.responses.GoogleImportResult;
-import com.backend.gapfinder.exceptions.DuplicateClassBlockException;
-import com.backend.gapfinder.models.ClassBlockModel;
+import com.backend.gapfinder.model.adapters.AdaptedSchedule;
+import com.backend.gapfinder.model.adapters.ScheduleSource;
+import com.backend.gapfinder.view.dto.ClassBlockBasicDTO;
+import com.backend.gapfinder.view.dto.responses.GoogleImportResult;
+import com.backend.gapfinder.model.exceptions.DuplicateClassBlockException;
+import com.backend.gapfinder.model.models.ClassBlockModel;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

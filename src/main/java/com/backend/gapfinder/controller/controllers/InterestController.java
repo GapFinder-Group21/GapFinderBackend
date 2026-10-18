@@ -1,8 +1,8 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.InterestBasicDTO;
-import com.backend.gapfinder.models.InterestModel;
-import com.backend.gapfinder.services.InterestService;
+import com.backend.gapfinder.view.dto.InterestBasicDTO;
+import com.backend.gapfinder.model.models.InterestModel;
+import com.backend.gapfinder.model.services.InterestService;
 
 import java.util.List;
 

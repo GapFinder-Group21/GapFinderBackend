@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto.responses;
+package com.backend.gapfinder.view.dto.responses;
 
-import com.backend.gapfinder.dto.OpenTableCompleteDTO;
+import com.backend.gapfinder.view.dto.OpenTableCompleteDTO;
 
 import java.util.List;
 

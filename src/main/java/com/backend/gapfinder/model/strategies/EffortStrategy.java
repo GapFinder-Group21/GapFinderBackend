@@ -1,7 +1,7 @@
-package com.backend.gapfinder.strategies;
+package com.backend.gapfinder.model.strategies;
 
-import com.backend.gapfinder.enums.EffortTypeEnum;
-import com.backend.gapfinder.models.GapModel;
+import com.backend.gapfinder.model.enums.EffortTypeEnum;
+import com.backend.gapfinder.model.models.GapModel;
 import org.springframework.stereotype.Component;
 
 @Component

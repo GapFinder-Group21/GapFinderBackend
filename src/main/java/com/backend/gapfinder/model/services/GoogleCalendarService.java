@@ -1,8 +1,8 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.GoogleCredentialModel;
-import com.backend.gapfinder.repositories.GoogleCredentialRepository;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.GoogleCredentialModel;
+import com.backend.gapfinder.model.repositories.GoogleCredentialRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;

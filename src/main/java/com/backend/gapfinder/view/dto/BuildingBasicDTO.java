@@ -1,4 +1,4 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
 import lombok.Data;
 import org.locationtech.jts.geom.Point;

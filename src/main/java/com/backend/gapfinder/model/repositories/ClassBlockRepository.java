@@ -1,7 +1,7 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
-import com.backend.gapfinder.models.ClassBlockModel;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.models.ClassBlockModel;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

@@ -1,10 +1,10 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.OpenTableBasicDTO;
-import com.backend.gapfinder.dto.OpenTableCompleteDTO;
-import com.backend.gapfinder.dto.OpenTableListDTO;
-import com.backend.gapfinder.models.OpenTableModel;
-import com.backend.gapfinder.services.OpenTableService;
+import com.backend.gapfinder.view.dto.OpenTableBasicDTO;
+import com.backend.gapfinder.view.dto.OpenTableCompleteDTO;
+import com.backend.gapfinder.view.dto.OpenTableListDTO;
+import com.backend.gapfinder.model.models.OpenTableModel;
+import com.backend.gapfinder.model.services.OpenTableService;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;

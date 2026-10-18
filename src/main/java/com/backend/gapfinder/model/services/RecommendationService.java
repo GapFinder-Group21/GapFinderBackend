@@ -1,12 +1,12 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.builders.OpenTableRecommendationResponseBuilder;
-import com.backend.gapfinder.dto.OpenTableCompleteDTO;
-import com.backend.gapfinder.dto.responses.OpenTableRecommendationResponseDTO;
-import com.backend.gapfinder.enums.OpenTableStatusEnum;
-import com.backend.gapfinder.repositories.OpenTableRepository;
-import com.backend.gapfinder.repositories.UserLocationLogRepository;
-import com.backend.gapfinder.repositories.projections.FavoriteBuildingProjection;
+import com.backend.gapfinder.model.builders.OpenTableRecommendationResponseBuilder;
+import com.backend.gapfinder.view.dto.OpenTableCompleteDTO;
+import com.backend.gapfinder.view.dto.responses.OpenTableRecommendationResponseDTO;
+import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
+import com.backend.gapfinder.model.repositories.OpenTableRepository;
+import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.model.repositories.projections.FavoriteBuildingProjection;
 
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;

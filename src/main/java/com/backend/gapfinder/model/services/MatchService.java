@@ -1,20 +1,20 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.dto.GapBasicDTO;
-import com.backend.gapfinder.dto.GapCompleteDTO;
-import com.backend.gapfinder.dto.responses.MatchCandidateResponseDTO;
-import com.backend.gapfinder.enums.MatchStatusEnum;
-import com.backend.gapfinder.enums.NotificationTypeEnum;
-import com.backend.gapfinder.events.MatchEvent;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.models.MatchModel;
-import com.backend.gapfinder.repositories.GapRepository;
-import com.backend.gapfinder.repositories.MatchRepository;
-import com.backend.gapfinder.strategies.EffortStrategy;
-import com.backend.gapfinder.strategies.OverlapStrategy;
-import com.backend.gapfinder.strategies.SameCareerStrategy;
-import com.backend.gapfinder.strategies.SharedInterestStrategy;
+import com.backend.gapfinder.view.dto.GapBasicDTO;
+import com.backend.gapfinder.view.dto.GapCompleteDTO;
+import com.backend.gapfinder.view.dto.responses.MatchCandidateResponseDTO;
+import com.backend.gapfinder.model.enums.MatchStatusEnum;
+import com.backend.gapfinder.model.enums.NotificationTypeEnum;
+import com.backend.gapfinder.model.events.MatchEvent;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.MatchRepository;
+import com.backend.gapfinder.model.strategies.EffortStrategy;
+import com.backend.gapfinder.model.strategies.OverlapStrategy;
+import com.backend.gapfinder.model.strategies.SameCareerStrategy;
+import com.backend.gapfinder.model.strategies.SharedInterestStrategy;
 
 import lombok.extern.slf4j.Slf4j;
 

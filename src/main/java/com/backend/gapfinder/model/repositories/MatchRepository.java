@@ -1,7 +1,7 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.enums.MatchStatusEnum;
-import com.backend.gapfinder.models.MatchModel;
+import com.backend.gapfinder.model.enums.MatchStatusEnum;
+import com.backend.gapfinder.model.models.MatchModel;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

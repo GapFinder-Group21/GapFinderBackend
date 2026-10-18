@@ -1,9 +1,9 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.GapBasicDTO;
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.services.GapService;
-import com.backend.gapfinder.services.WeeklyGapService;
+import com.backend.gapfinder.view.dto.GapBasicDTO;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.services.GapService;
+import com.backend.gapfinder.model.services.WeeklyGapService;
 
 import java.time.LocalDate;
 import java.util.List;

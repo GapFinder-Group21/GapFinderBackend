@@ -1,12 +1,12 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
-import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
-import com.backend.gapfinder.services.AnalyticsService;
-import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
-import com.backend.gapfinder.dto.responses.BuildingGapPresenceResponseDTO;
-import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.model.services.AnalyticsService;
+import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
+import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
+import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 
 
 import java.time.LocalDateTime;

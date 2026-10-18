@@ -1,8 +1,8 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.responses.GoogleImportResult;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.services.GoogleScheduleImportService;
+import com.backend.gapfinder.view.dto.responses.GoogleImportResult;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.services.GoogleScheduleImportService;
 
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;

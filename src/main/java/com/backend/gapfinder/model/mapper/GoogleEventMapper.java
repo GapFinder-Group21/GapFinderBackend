@@ -1,7 +1,7 @@
-package com.backend.gapfinder.mapper;
+package com.backend.gapfinder.model.mapper;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
-import com.backend.gapfinder.models.ClassBlockModel;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.models.ClassBlockModel;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
 

@@ -1,10 +1,10 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.BuildingModel;
-import com.backend.gapfinder.models.UserLocationLogModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.BuildingModel;
+import com.backend.gapfinder.model.models.UserLocationLogModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

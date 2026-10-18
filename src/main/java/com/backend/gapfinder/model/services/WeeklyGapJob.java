@@ -1,4 +1,4 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;

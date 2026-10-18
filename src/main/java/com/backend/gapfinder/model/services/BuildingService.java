@@ -1,8 +1,8 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.BuildingModel;
-import com.backend.gapfinder.repositories.BuildingRepository;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.BuildingModel;
+import com.backend.gapfinder.model.repositories.BuildingRepository;
 
 import lombok.extern.slf4j.Slf4j;
 

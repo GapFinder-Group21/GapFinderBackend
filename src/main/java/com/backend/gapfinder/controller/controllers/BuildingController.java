@@ -1,9 +1,9 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.BuildingBasicDTO;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.BuildingModel;
-import com.backend.gapfinder.services.BuildingService;
+import com.backend.gapfinder.view.dto.BuildingBasicDTO;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.BuildingModel;
+import com.backend.gapfinder.model.services.BuildingService;
 
 import java.util.List;
 

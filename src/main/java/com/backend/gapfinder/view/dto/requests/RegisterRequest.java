@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto.requests;
+package com.backend.gapfinder.view.dto.requests;
 
-import com.backend.gapfinder.enums.EffortTypeEnum;
+import com.backend.gapfinder.model.enums.EffortTypeEnum;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;

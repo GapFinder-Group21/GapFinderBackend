@@ -1,20 +1,20 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.dto.responses.BuildingGapPresenceResponseDTO;
-import com.backend.gapfinder.dto.responses.ConnectionMethodResponseDTO;
-import com.backend.gapfinder.dto.responses.GapCoverageResponseDTO;
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
-import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
-import com.backend.gapfinder.enums.MatchStatusEnum;
-import com.backend.gapfinder.enums.OpenTableStatusEnum;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.repositories.GapRepository;
-import com.backend.gapfinder.repositories.MatchRepository;
-import com.backend.gapfinder.repositories.OpenTableRepository;
-import com.backend.gapfinder.repositories.UserLocationLogRepository;
-import com.backend.gapfinder.repositories.projections.SharedInterestGroupProjection;
-import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
+import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
+import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
+import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.model.enums.MatchStatusEnum;
+import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.MatchRepository;
+import com.backend.gapfinder.model.repositories.OpenTableRepository;
+import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
+import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

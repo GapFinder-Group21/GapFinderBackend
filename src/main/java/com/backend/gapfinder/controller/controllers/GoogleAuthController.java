@@ -1,9 +1,9 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.models.GoogleCredentialModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.GoogleCredentialRepository;
-import com.backend.gapfinder.services.UserService;
+import com.backend.gapfinder.model.models.GoogleCredentialModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.GoogleCredentialRepository;
+import com.backend.gapfinder.model.services.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeFlow;
 import com.google.api.client.googleapis.auth.oauth2.GoogleTokenResponse;
 import lombok.extern.slf4j.Slf4j;

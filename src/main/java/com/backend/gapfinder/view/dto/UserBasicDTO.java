@@ -1,7 +1,7 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 import lombok.Data;
 import java.time.LocalDateTime;
-import com.backend.gapfinder.enums.EffortTypeEnum;
+import com.backend.gapfinder.model.enums.EffortTypeEnum;
 // Basic DTO (Data Transfer Object) representing fundamental user information.
 @Data
 public class UserBasicDTO {

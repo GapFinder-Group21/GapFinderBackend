@@ -1,7 +1,7 @@
-package com.backend.gapfinder.strategies;
+package com.backend.gapfinder.model.strategies;
 
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.models.InterestModel;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.models.InterestModel;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

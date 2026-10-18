@@ -1,8 +1,8 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
 import java.time.LocalDateTime;
 
-import com.backend.gapfinder.enums.FriendshipStatusEnum;
+import com.backend.gapfinder.model.enums.FriendshipStatusEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

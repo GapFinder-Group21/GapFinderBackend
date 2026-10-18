@@ -1,6 +1,6 @@
-package com.backend.gapfinder.strategies;
+package com.backend.gapfinder.model.strategies;
 
-import com.backend.gapfinder.models.GapModel;
+import com.backend.gapfinder.model.models.GapModel;
 
 public interface MatchingStrategy {
 

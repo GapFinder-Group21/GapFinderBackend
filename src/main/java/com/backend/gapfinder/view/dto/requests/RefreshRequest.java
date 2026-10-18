@@ -1,4 +1,4 @@
-package com.backend.gapfinder.dto.requests;
+package com.backend.gapfinder.view.dto.requests;
 
 import jakarta.validation.constraints.NotBlank;
 

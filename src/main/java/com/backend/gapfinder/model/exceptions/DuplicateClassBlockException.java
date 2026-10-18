@@ -1,4 +1,4 @@
-package com.backend.gapfinder.exceptions;
+package com.backend.gapfinder.model.exceptions;
 
 public class DuplicateClassBlockException extends RuntimeException {
 

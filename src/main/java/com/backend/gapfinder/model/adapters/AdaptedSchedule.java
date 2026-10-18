@@ -1,6 +1,6 @@
-package com.backend.gapfinder.adapters;
+package com.backend.gapfinder.model.adapters;
 
-import com.backend.gapfinder.models.ClassBlockModel;
+import com.backend.gapfinder.model.models.ClassBlockModel;
 
 import java.util.List;
 

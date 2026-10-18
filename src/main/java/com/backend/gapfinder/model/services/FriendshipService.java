@@ -1,10 +1,10 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.enums.FriendshipStatusEnum;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.FriendshipModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.FriendshipRepository;
+import com.backend.gapfinder.model.enums.FriendshipStatusEnum;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.FriendshipModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.FriendshipRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

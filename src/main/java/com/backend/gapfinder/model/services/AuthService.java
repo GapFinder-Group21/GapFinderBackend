@@ -1,12 +1,12 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.dto.requests.LoginRequest;
-import com.backend.gapfinder.dto.requests.RefreshRequest;
-import com.backend.gapfinder.dto.requests.RegisterRequest;
-import com.backend.gapfinder.dto.responses.AuthResponse;
-import com.backend.gapfinder.models.RefreshTokenModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.UserRepository;
+import com.backend.gapfinder.view.dto.requests.LoginRequest;
+import com.backend.gapfinder.view.dto.requests.RefreshRequest;
+import com.backend.gapfinder.view.dto.requests.RegisterRequest;
+import com.backend.gapfinder.view.dto.responses.AuthResponse;
+import com.backend.gapfinder.model.models.RefreshTokenModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

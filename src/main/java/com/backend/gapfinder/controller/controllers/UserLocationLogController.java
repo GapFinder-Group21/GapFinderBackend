@@ -1,8 +1,8 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.UserLocationLogBasicDTO;
-import com.backend.gapfinder.models.UserLocationLogModel;
-import com.backend.gapfinder.services.UserLocationLogService;
+import com.backend.gapfinder.view.dto.UserLocationLogBasicDTO;
+import com.backend.gapfinder.model.models.UserLocationLogModel;
+import com.backend.gapfinder.model.services.UserLocationLogService;
 
 import java.util.List;
 

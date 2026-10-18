@@ -1,6 +1,6 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.models.OpenTableParticipantModel;
+import com.backend.gapfinder.model.models.OpenTableParticipantModel;
 
 import java.time.LocalDateTime;
 import java.util.List;

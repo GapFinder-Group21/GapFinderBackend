@@ -12,8 +12,10 @@ import java.util.List;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/open-tables")
@@ -45,17 +47,19 @@ public class OpenTableController {
 
 
     // Create a new open table
-    // POST /open-tables
-    @PostMapping
+    // POST /open-tables (multipart: "openTable" with the JSON data and "photo" with the image)
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public OpenTableBasicDTO createOpenTable(@RequestBody OpenTableCompleteDTO dto,
+    public OpenTableBasicDTO createOpenTable(@RequestPart("openTable") OpenTableCompleteDTO dto,
+                                             // Optional here so the service answers with a clear message when it is missing
+                                             @RequestPart(value = "photo", required = false) MultipartFile photo,
                                              @AuthenticationPrincipal UserModel me) {
         OpenTableModel openTableModel = modelMapper.map(dto, OpenTableModel.class);
         // A user can only create open tables in their own name
         if (openTableModel.getCreator() != null && openTableModel.getCreator().getId() != null) {
             AccessGuard.requireSameUser(me, openTableModel.getCreator().getId());
         }
-        OpenTableModel created = openTableService.create(openTableModel);
+        OpenTableModel created = openTableService.create(openTableModel, photo);
         return modelMapper.map(created, OpenTableBasicDTO.class);
     }
 

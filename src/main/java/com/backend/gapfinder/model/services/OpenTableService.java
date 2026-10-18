@@ -13,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,17 +27,20 @@ public class OpenTableService {
     private final UserService userService;
     private final BuildingService buildingService;
     private final ActivityService activityService;
+    private final OpenTablePhotoService openTablePhotoService;
 
     public OpenTableService(OpenTableRepository openTableRepository,
                             OpenTableParticipantRepository openTableParticipantRepository,
                             UserService userService,
                             BuildingService buildingService,
-                            ActivityService activityService) {
+                            ActivityService activityService,
+                            OpenTablePhotoService openTablePhotoService) {
         this.openTableRepository = openTableRepository;
         this.openTableParticipantRepository = openTableParticipantRepository;
         this.userService = userService;
         this.buildingService = buildingService;
         this.activityService = activityService;
+        this.openTablePhotoService = openTablePhotoService;
     }
 
     // Get an open table by its id
@@ -54,9 +58,9 @@ public class OpenTableService {
         return openTableRepository.findAll();
     }
 
-    // Create a new open table
+    // Create a new open table with its photo (the photo is required)
     @Transactional
-    public OpenTableModel create(OpenTableModel openTable) {
+    public OpenTableModel create(OpenTableModel openTable, MultipartFile photo) {
         log.info("Inicia proceso de creación de una open table con título = {}", openTable.getTitle());
 
         validateOpenTableData(openTable);
@@ -78,8 +82,19 @@ public class OpenTableService {
         openTable.setStatus(OpenTableStatusEnum.OPEN);
         openTable.setCreatedAt(LocalDateTime.now());
 
-        log.info("Termina proceso de creación de una open table con título = {}", openTable.getTitle());
-        return openTableRepository.save(openTable);
+        // The photo is saved after the data is valid, so invalid tables leave no files behind
+        String photoUrl = openTablePhotoService.store(photo);
+        openTable.setPhotoUrl(photoUrl);
+
+        try {
+            OpenTableModel saved = openTableRepository.save(openTable);
+            log.info("Termina proceso de creación de una open table con título = {}", openTable.getTitle());
+            return saved;
+        } catch (RuntimeException e) {
+            // The table was not saved, so its photo is removed
+            openTablePhotoService.delete(photoUrl);
+            throw e;
+        }
     }
 
     // Update the data from an existing open table

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +34,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ScheduleSourceUnavailableException.class)
     public ResponseEntity<String> handleScheduleSourceUnavailable(ScheduleSourceUnavailableException ex) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
+    }
+
+    // La foto supera el tamaño máximo permitido → 413
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<String> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE).body("La foto no puede pesar más de 5 MB");
     }
 
     // El usuario autenticado no es dueño del recurso → 403

@@ -3,16 +3,20 @@ package com.backend.gapfinder.model.services;
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
+import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 
@@ -22,7 +26,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -33,10 +39,15 @@ public class AnalyticsService {
     private final UserLocationLogRepository locationLogRepository;
     private final MatchRepository matchRepository;
     private final OpenTableRepository openTableRepository;
+    private final AppSessionRepository appSessionRepository;
+    private final UserService userService;
 
     public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository,
                             UserLocationLogRepository locationLogRepository, MatchRepository matchRepository,
-                            OpenTableRepository openTableRepository) {
+                            OpenTableRepository openTableRepository, AppSessionRepository appSessionRepository,
+                            UserService userService) {
+        this.appSessionRepository = appSessionRepository;
+        this.userService = userService;
         this.abandonmentService = abandonmentService;
         this.gapRepository = gapRepository;
         this.locationLogRepository = locationLogRepository;
@@ -287,4 +298,94 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 13 INDIVIDUAL ==================
+
+    // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
+    // Sofia Morato: How long after a gap starts do students open the app?
+
+    // Ranges of minutes in natural order; the last one groups the gaps where the app was not opened
+    private static final List<String> APP_OPEN_RANGES = List.of("0-5", "5-15", "15-30", "30+", "No abrió");
+
+    // Minimum gaps of the user needed to trust their own average
+    private static final long MIN_USER_GAPS = 3;
+
+    // Bounds of the reminder offset in minutes (not instant, not too late to be useful)
+    private static final int MIN_OFFSET_MINUTES = 2;
+    private static final int MAX_OFFSET_MINUTES = 30;
+
+    // Offset used when nobody has data yet
+    private static final int DEFAULT_OFFSET_MINUTES = 5;
+
+    // Distribution of the minutes after a gap starts at which the app is first opened, plus the average of all users
+    // userId: optional, null for the dashboard. With a user it also returns the minutes after the gap start to send them the reminder
+    // since: optional, whole history if null
+    @Transactional(readOnly = true)
+    public AppOpenDelayStatsDTO getAppOpenDelay(Long userId, LocalDateTime since) {
+        LocalDateTime start = since != null ? since : HISTORY_START;
+
+        log.info("Inicia proceso de consultar el retraso en abrir la app tras el inicio de un gap desde {}", start);
+
+        if (userId != null) {
+            userService.getById(userId);
+        }
+
+        // Gaps per range, with 0 for the ranges that do not appear in the query
+        Map<String, Long> gapsByRange = new LinkedHashMap<>();
+        APP_OPEN_RANGES.forEach(range -> gapsByRange.put(range, 0L));
+        appSessionRepository.countGapsByOpenDelayRange(start)
+                .forEach(row -> gapsByRange.put(row.getDelayRange(), row.getGaps()));
+
+        long totalGaps = gapsByRange.values().stream().mapToLong(Long::longValue).sum();
+        if (totalGaps == 0) {
+            throw new NotFoundException("No hay gaps terminados registrados desde la fecha indicada");
+        }
+
+        List<AppOpenDelayRangeStatsBasicDTO> distribution = gapsByRange.entrySet().stream()
+                .map(entry -> new AppOpenDelayRangeStatsBasicDTO(
+                        entry.getKey(), entry.getValue(), (double) entry.getValue() / totalGaps * 100))
+                .toList();
+
+        // Most frequent range where the app was opened (the first one in natural order wins a tie)
+        String mostFrequentRange = distribution.stream()
+                .filter(stat -> !stat.range().equals("No abrió") && stat.gaps() > 0)
+                .max(Comparator.comparingLong(AppOpenDelayRangeStatsBasicDTO::gaps))
+                .map(AppOpenDelayRangeStatsBasicDTO::range)
+                .orElse(null);
+
+        AppOpenDelayProjection averages = appSessionRepository.findAppOpenDelayAverages(userId, start);
+        long globalGaps = averages.getGlobalGapsCounted() != null ? averages.getGlobalGapsCounted() : 0L;
+        Double globalAverage = globalGaps > 0 ? averages.getGlobalAverageMinutes() : null;
+
+        // Without a user there is no reminder offset
+        if (userId == null) {
+            log.info("Termina proceso de consultar el retraso en abrir la app tras el inicio de un gap desde {}", start);
+            return new AppOpenDelayStatsDTO(distribution, mostFrequentRange, globalAverage, globalGaps,
+                    null, null, null, null);
+        }
+
+        long userGaps = averages.getUserGapsCounted() != null ? averages.getUserGapsCounted() : 0L;
+        Double userAverage = userGaps > 0 ? averages.getUserAverageMinutes() : null;
+
+        // The user's own average if they have enough gaps, else the average of all users, else a default
+        double offset;
+        String source;
+        if (userGaps >= MIN_USER_GAPS && userAverage != null) {
+            offset = userAverage;
+            source = "USER";
+        } else if (globalAverage != null) {
+            offset = globalAverage;
+            source = "GLOBAL";
+        } else {
+            offset = DEFAULT_OFFSET_MINUTES;
+            source = "DEFAULT";
+        }
+
+        // Whole minutes, limited to the allowed range
+        int offsetMinutes = (int) Math.max(MIN_OFFSET_MINUTES, Math.min(MAX_OFFSET_MINUTES, Math.round(offset)));
+
+        log.info("Termina proceso de consultar el retraso en abrir la app tras el inicio de un gap desde {}", start);
+        return new AppOpenDelayStatsDTO(distribution, mostFrequentRange, globalAverage, globalGaps,
+                userAverage, userGaps, offsetMinutes, source);
+    }
+
+    // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
 }

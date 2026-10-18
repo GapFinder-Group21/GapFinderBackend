@@ -14152,3 +14152,55 @@ SELECT pr.proposer_gap_id, pr.acceptor_gap_id, pr.start_time,
     (60 + pr.h % 190)::float8,
     CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END
 FROM pairs pr;
+-- ---------- app sessions (openings of the app) for the BQ 4 (How long after a gap starts do students open the app?)
+-- Runs only while app_sessions is empty, so it does not duplicate rows on every startup.
+-- For ~90% of the finished gaps the student opens the app once inside the gap, at a delay that depends on the
+-- gap (hash of its id) and on the student (user id % 4: some students open it faster than others);
+-- the 30+ range only appears in gaps long enough to hold it, and 1 of every 3 gaps gets a second, later opening
+-- (the BQ only counts the first one).
+INSERT INTO app_sessions (user_id, opened_at)
+SELECT o.user_id, o.opened_at
+FROM (
+    SELECT d.user_id, d.start_time + make_interval(secs => d.delay_secs) AS opened_at
+    FROM (
+        SELECT g.user_id, g.start_time, g.dur_secs, g.h,
+            CASE
+                WHEN g.r < g.t1 THEN 30 + (g.h / 100) % 270
+                WHEN g.r < g.t1 + 25 THEN 300 + (g.h / 100) % 600
+                WHEN g.r < g.t1 + 40 THEN 900 + (g.h / 100) % 900
+                WHEN g.r < 90 THEN 1800 + (g.h / 100) % 1200
+            END AS delay_secs
+        FROM (
+            SELECT gp.user_id, gp.start_time,
+                EXTRACT(EPOCH FROM (gp.end_time - gp.start_time))::int AS dur_secs,
+                hashtext(gp.id::text) & 2147483647 AS h,
+                (hashtext(gp.id::text) & 2147483647) % 100 AS r,
+                20 + (gp.user_id % 4) * 8 AS t1
+            FROM gaps gp
+            WHERE gp.end_time <= LOCALTIMESTAMP
+        ) g
+    ) d
+    WHERE d.delay_secs IS NOT NULL AND d.delay_secs <= d.dur_secs - 60
+    UNION ALL
+    SELECT d.user_id, d.start_time + make_interval(secs => d.delay_secs + 300 + (d.h / 7) % 600)
+    FROM (
+        SELECT g.user_id, g.start_time, g.dur_secs, g.h,
+            CASE
+                WHEN g.r < g.t1 THEN 30 + (g.h / 100) % 270
+                WHEN g.r < g.t1 + 25 THEN 300 + (g.h / 100) % 600
+                WHEN g.r < g.t1 + 40 THEN 900 + (g.h / 100) % 900
+                WHEN g.r < 90 THEN 1800 + (g.h / 100) % 1200
+            END AS delay_secs
+        FROM (
+            SELECT gp.user_id, gp.start_time,
+                EXTRACT(EPOCH FROM (gp.end_time - gp.start_time))::int AS dur_secs,
+                hashtext(gp.id::text) & 2147483647 AS h,
+                (hashtext(gp.id::text) & 2147483647) % 100 AS r,
+                20 + (gp.user_id % 4) * 8 AS t1
+            FROM gaps gp
+            WHERE gp.end_time <= LOCALTIMESTAMP
+        ) g
+    ) d
+    WHERE d.delay_secs IS NOT NULL AND d.h % 3 = 0 AND d.delay_secs + 300 + (d.h / 7) % 600 <= d.dur_secs - 60
+) o
+WHERE NOT EXISTS (SELECT 1 FROM app_sessions);

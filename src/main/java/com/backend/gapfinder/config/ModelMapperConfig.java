@@ -1,8 +1,8 @@
 package com.backend.gapfinder.config;
 
-import com.backend.gapfinder.dto.GapBasicDTO;
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.models.UserModel;
+import com.backend.gapfinder.view.dto.GapBasicDTO;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.models.UserModel;
 import org.modelmapper.ModelMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

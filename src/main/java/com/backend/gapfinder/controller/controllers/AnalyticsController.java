@@ -1,9 +1,12 @@
 package com.backend.gapfinder.controller.controllers;
 
+import com.backend.gapfinder.view.dto.FavoriteActivityStatsBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.AnalyticsService;
+import com.backend.gapfinder.security.AccessGuard;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
@@ -13,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -34,6 +38,20 @@ public class AnalyticsController {
 
         return analyticsService.getMostAbandonedStep(since);
     }
+
+    // ==================== BQ 6 ====================
+
+    // Get the activity the user chose most often when creating open tables (used to preselect it)
+    // GET /analytics/open-tables/favorite-activity/user/{userId}
+    @GetMapping("/open-tables/favorite-activity/user/{userId}")
+    public FavoriteActivityStatsBasicDTO getFavoriteActivity(@PathVariable Long userId,
+                                                             @AuthenticationPrincipal UserModel me) {
+        // Only the user can see their own favorite activity
+        AccessGuard.requireSameUser(me, userId);
+        return analyticsService.getFavoriteActivity(userId);
+    }
+
+    // ================== END BQ 6 ==================
 
     
     // ==================== BQ 5 ====================

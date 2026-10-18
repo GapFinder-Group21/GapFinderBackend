@@ -3,6 +3,7 @@ package com.backend.gapfinder.model.services;
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
+import com.backend.gapfinder.view.dto.FavoriteActivityStatsBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -13,6 +14,7 @@ import com.backend.gapfinder.model.repositories.GapRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
+import com.backend.gapfinder.model.repositories.projections.FavoriteActivityProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -60,6 +64,55 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 3 TYPE 2 GRUPAL ==================
+
+    // ==================== BQ 6 TYPE 2 ====================
+    // Joel: Which activity does the student choose most often when creating open tables,
+    // so the app can preselect it the next time they create one?
+
+    // Retrieves the activity the user chose most often when creating open tables
+    @Transactional(readOnly = true)
+    public FavoriteActivityStatsBasicDTO getFavoriteActivity(Long userId) {
+        log.info("Inicia proceso de consultar la actividad favorita del usuario {}", userId);
+
+        FavoriteActivityStatsBasicDTO result = openTableRepository.findActivityUsageByCreator(userId).stream()
+                .findFirst()
+                .map(this::toFavoriteActivityStats)
+                .orElseThrow(() -> new NotFoundException("El usuario no ha creado open tables con actividad"));
+
+        log.info("Termina proceso de consultar la actividad favorita del usuario {}", userId);
+        return result;
+    }
+
+    // Retrieves the favorite activity of every student, most chosen first
+    @Transactional(readOnly = true)
+    public List<FavoriteActivityStatsBasicDTO> getFavoriteActivityPerStudent() {
+        log.info("Inicia proceso de consultar la actividad favorita de cada estudiante");
+
+        // Rows come sorted by student and most chosen first, so the first row of each student is the favorite
+        Map<Long, FavoriteActivityStatsBasicDTO> favorites = new LinkedHashMap<>();
+        for (FavoriteActivityProjection row : openTableRepository.findActivityUsageByAllCreators()) {
+            favorites.putIfAbsent(row.getUserId(), toFavoriteActivityStats(row));
+        }
+
+        List<FavoriteActivityStatsBasicDTO> result = favorites.values().stream()
+                .sorted(Comparator.comparingLong(FavoriteActivityStatsBasicDTO::timesChosen).reversed())
+                .toList();
+
+        log.info("Termina proceso de consultar la actividad favorita de cada estudiante");
+        return result;
+    }
+
+    // Builds the favorite activity DTO from the query row
+    private FavoriteActivityStatsBasicDTO toFavoriteActivityStats(FavoriteActivityProjection row) {
+        return new FavoriteActivityStatsBasicDTO(
+                row.getUserId(),
+                row.getUserName(),
+                row.getActivityId(),
+                row.getActivityName(),
+                row.getTimesChosen() != null ? row.getTimesChosen() : 0L);
+    }
+
+    // ================== END BQ 6 TYPE 2 ==================
 
     // ==================== BQ 5 ====================
     // Miguel Cabrera: Which gap durations have the lowest match coverage?

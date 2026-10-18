@@ -2,6 +2,7 @@ package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.models.OpenTableModel;
+import com.backend.gapfinder.model.repositories.projections.FavoriteActivityProjection;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,5 +56,30 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
 
     // Count the open tables with a given status (BQ 7)
     long countByStatus(OpenTableStatusEnum status);
+
+    // BQ 6: times a student chose each activity, most chosen first (ties: most recent first)
+    @Query("""
+        SELECT o.creator.id AS userId, o.creator.name AS userName,
+               o.activity.id AS activityId, o.activity.name AS activityName,
+               COUNT(o) AS timesChosen
+        FROM OpenTableModel o
+        WHERE o.creator.id = :userId
+          AND o.activity IS NOT NULL
+        GROUP BY o.creator.id, o.creator.name, o.activity.id, o.activity.name
+        ORDER BY COUNT(o) DESC, MAX(o.createdAt) DESC
+        """)
+    List<FavoriteActivityProjection> findActivityUsageByCreator(@Param("userId") Long userId);
+
+    // BQ 6: times every student chose each activity, grouped by student and most chosen first
+    @Query("""
+        SELECT o.creator.id AS userId, o.creator.name AS userName,
+               o.activity.id AS activityId, o.activity.name AS activityName,
+               COUNT(o) AS timesChosen
+        FROM OpenTableModel o
+        WHERE o.activity IS NOT NULL
+        GROUP BY o.creator.id, o.creator.name, o.activity.id, o.activity.name
+        ORDER BY o.creator.id, COUNT(o) DESC, MAX(o.createdAt) DESC
+        """)
+    List<FavoriteActivityProjection> findActivityUsageByAllCreators();
 
 }

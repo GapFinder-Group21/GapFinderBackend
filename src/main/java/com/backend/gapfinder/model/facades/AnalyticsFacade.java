@@ -40,6 +40,7 @@ public class AnalyticsFacade {
 
         AnalyticsDashboardResponseDTO dashboard = new AnalyticsDashboardResponseDTO();
         dashboard.setMostAbandonedStep(getMostAbandonedStepOrNull(start));
+        dashboard.setFavoriteActivityPerStudent(analyticsService.getFavoriteActivityPerStudent());
         dashboard.setGapCoverageByDuration(analyticsService.getMatchCoverageByGapDuration());
         dashboard.setConnectionMethods(analyticsService.compareConnectionMethods());
         dashboard.setBuildingsByGapPresence(analyticsService.getBuildingsByGapPresence());

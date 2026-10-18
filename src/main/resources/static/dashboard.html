@@ -180,6 +180,11 @@
         <div id="bq3"></div>
       </div>
       <div class="card">
+        <div class="bq-tag">BQ 6</div>
+        <p class="question">Which activity does the student choose most often when creating open tables, so the app can preselect it the next time they create one?</p>
+        <div id="bq6"></div>
+      </div>
+      <div class="card">
         <div class="bq-tag">BQ 5</div>
         <p class="question">Which gap durations have the lowest match coverage?</p>
         <div id="bq5"></div>
@@ -355,6 +360,26 @@
       <div class="hero-sub">${pct(rate)} abandonment rate · ${data.abandonments} of ${data.reached} users left at this step</div>
       <div class="meter" role="img" aria-label="Abandonment rate ${pct(rate)}">
         <div style="width:${Math.min(rate, 100)}%"></div>
+      </div>`;
+  }
+
+  // BQ 6: simple table with the favorite activity of each student
+  function renderBq6(rows) {
+    const box = document.getElementById('bq6');
+    if (!rows || rows.length === 0) return showEmpty(box);
+
+    const tableRows = rows.map(r => `
+      <tr>
+        <td>${esc(r.userName)}</td>
+        <td>${esc(r.activityName)}</td>
+        <td>${r.timesChosen}</td>
+      </tr>`).join('');
+    box.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Student</th><th>Favorite activity</th><th>Times chosen</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
       </div>`;
   }
 
@@ -692,6 +717,7 @@
       if (myRequest !== requestNumber) return;
 
       renderBq3(data.mostAbandonedStep);
+      renderBq6(data.favoriteActivityPerStudent);
       renderBq5(data.gapCoverageByDuration);
       renderBq7(data.connectionMethods);
       renderBq11(data.buildingsByGapPresence);

@@ -1,5 +1,6 @@
 package com.backend.gapfinder.view.dto.responses;
 
+import com.backend.gapfinder.view.dto.FavoriteActivityStatsBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -14,6 +15,9 @@ public class AnalyticsDashboardResponseDTO {
 
     // BQ 3: creation step with the highest abandonment rate (null if there are no abandonments)
     private OpenTableAbandonmentStatsBasicDTO mostAbandonedStep;
+
+    // BQ 6: favorite activity of each student when creating open tables, most chosen first (empty if there is no data)
+    private List<FavoriteActivityStatsBasicDTO> favoriteActivityPerStudent;
 
     // BQ 5: match coverage per gap duration, lowest coverage first
     private List<GapCoverageResponseDTO> gapCoverageByDuration;

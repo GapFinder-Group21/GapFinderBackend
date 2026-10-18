@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
@@ -83,8 +82,8 @@ public class GoogleCalendarService {
                 .build();
 
         // Ventana puntual de lunes a sábado; el usuario dispara la importación manualmente.
-        LocalDate hoy = LocalDate.now();
-        LocalDate lunes = hoy.with(DayOfWeek.MONDAY);
+        // Same week used to calculate the gaps (on Sunday, the coming week)
+        LocalDate lunes = WeeklyGapService.currentOrNextWeekStart(LocalDate.now());
         LocalDate domingoSiguiente = lunes.plusDays(7); // límite exclusivo, incluye todo el sábado
 
         Date timeMin = Date.from(lunes.atStartOfDay(ZoneId.systemDefault()).toInstant());

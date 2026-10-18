@@ -42,7 +42,7 @@ public interface UserLocationLogRepository extends JpaRepository<UserLocationLog
         """, nativeQuery = true)
     Optional<FavoriteBuildingProjection> findFavoriteBuilding(@Param("userId") Long userId);
 
-        // Calculates current student presence and free time metrics per building based on location logs during gaps
+        // Calculates student presence and free time metrics per building based on all the location logs during gaps
         // Buildings split in numbered parts (e.g. "Bobo 1" and "Bobo 2") count as one building without the number
     @Query(value = """
         SELECT MIN(b.id) AS buildingId,

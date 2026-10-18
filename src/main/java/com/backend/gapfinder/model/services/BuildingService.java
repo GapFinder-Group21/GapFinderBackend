@@ -69,7 +69,16 @@ public class BuildingService {
         BuildingModel existente = getById(id);
         validateBuildingData(building);
 
+        // Building names are unique
+        boolean nameTaken = !existente.getName().equals(building.getName())
+                && buildingRepository.existsByName(building.getName());
+        if (nameTaken) {
+            throw new IllegalArgumentException("Ya existe un edificio con el nombre: " + building.getName());
+        }
+
         existente.setName(building.getName());
+        existente.setLocation(building.getLocation());
+        existente.setRadiusMeters(building.getRadiusMeters());
 
         log.info("Termina proceso de actualización del edificio con id = {}", id);
         return buildingRepository.save(existente);

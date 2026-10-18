@@ -21,4 +21,10 @@ public class MatchBasicDTO {
 
     // Current state of the match
     private MatchStatusEnum status;
+
+    // Id of the gap of the user who proposed the match
+    private Long proposerGapId;
+
+    // Id of the gap of the user who receives the match
+    private Long acceptorGapId;
 }

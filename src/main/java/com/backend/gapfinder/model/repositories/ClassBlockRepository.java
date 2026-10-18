@@ -24,4 +24,14 @@ public interface ClassBlockRepository extends JpaRepository<ClassBlockModel, Lon
             LocalTime startTime,
             LocalTime endTime
     );
+
+    // Same check as above, leaving out the class being edited
+    boolean existsByUserIdAndSubjectAndDayOfWeekAndStartTimeAndEndTimeAndIdNot(
+            Long userId,
+            String subject,
+            DayOfWeekEnum dayOfWeek,
+            LocalTime startTime,
+            LocalTime endTime,
+            Long id
+    );
 }

@@ -31,6 +31,8 @@ public class UserModel extends BaseModel {
     private String email;
 
     // BCrypt hash of the password (the plain password is never stored)
+    // Kept out of toString so it never shows up in the logs
+    @ToString.Exclude
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
     

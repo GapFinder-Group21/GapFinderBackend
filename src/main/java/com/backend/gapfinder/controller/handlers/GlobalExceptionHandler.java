@@ -1,11 +1,18 @@
 package com.backend.gapfinder.controller.handlers;
 
+import com.backend.gapfinder.model.exceptions.DuplicateClassBlockException;
+import com.backend.gapfinder.model.exceptions.ForbiddenException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.exceptions.ScheduleSourceUnavailableException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -14,6 +21,33 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<String> handleNotFound(NotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    // La clase ya existe en el horario del usuario → 409
+    @ExceptionHandler(DuplicateClassBlockException.class)
+    public ResponseEntity<String> handleDuplicateClassBlock(DuplicateClassBlockException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    // Google Calendar no respondió o rechazó la conexión → 503
+    @ExceptionHandler(ScheduleSourceUnavailableException.class)
+    public ResponseEntity<String> handleScheduleSourceUnavailable(ScheduleSourceUnavailableException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(ex.getMessage());
+    }
+
+    // El usuario autenticado no es dueño del recurso → 403
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<String> handleForbidden(ForbiddenException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+    }
+
+    // Campos inválidos en un body con @Valid → 400 con el error de cada campo
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors()
+                .forEach(err -> errors.put(err.getField(), err.getDefaultMessage()));
+        return ResponseEntity.badRequest().body(errors);
     }
 
     // Datos inválidos en la petición → 400
@@ -40,8 +74,9 @@ public class GlobalExceptionHandler {
         System.err.println(">>> ERROR EN BASE DE DATOS: " + rootMessage);
         System.err.println("=======================================================\n");
 
+        // The database detail stays in the console, the client only gets a generic message
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body("Error de integridad en BD: " + rootMessage);
+                .body("Los datos enviados no cumplen las restricciones de la base de datos");
     }
 
     // CAPTURA CUALQUIER OTRO ERROR INESPERADO → 500
@@ -56,7 +91,8 @@ public class GlobalExceptionHandler {
         System.err.println(">>> EXCEPCIÓN NO CONTROLADA: " + rootCause.getMessage());
         System.err.println("=======================================================\n");
 
+        // The internal detail stays in the console, the client only gets a generic message
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error interno del servidor: " + rootCause.getMessage());
+                .body("Error interno del servidor");
     }
 }

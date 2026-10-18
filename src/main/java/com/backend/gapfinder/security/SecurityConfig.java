@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -59,6 +60,8 @@ public class SecurityConfig {
                 // Logout is not listed: it needs the JWT to know whose session to close
                 .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
                 .requestMatchers("/google/callback").permitAll()
+                // Open table photos are loaded by the app's image widgets, which do not send the JWT
+                .requestMatchers(HttpMethod.GET, "/uploads/open-tables/**").permitAll()
                 // Local analytics dashboard: the page and its single data endpoint are open (the BQ endpoints stay protected)
                 .requestMatchers("/dashboard.html", "/analytics/dashboard").permitAll()
                 .anyRequest().authenticated()

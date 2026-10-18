@@ -56,6 +56,11 @@ services:
     ports:
       - "8080:8080"
 
+    # Open table photos are kept outside the container so they survive restarts
+    volumes:
+      - gapfinder-uploads:/app/uploads
+
 
 volumes:
   gapfinder-postgis-data:
+  gapfinder-uploads:

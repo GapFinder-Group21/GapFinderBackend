@@ -67,4 +67,8 @@ public class OpenTableModel extends BaseModel   {
     @ManyToOne
     @JoinColumn(name = "activity_id")
     private ActivityModel activity;
+
+    // Relative URL of the photo taken when the table was created
+    @Column(name = "photo_url")
+    private String photoUrl;
 }

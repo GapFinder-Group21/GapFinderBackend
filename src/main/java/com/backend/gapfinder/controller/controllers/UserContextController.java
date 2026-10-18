@@ -3,11 +3,13 @@ package com.backend.gapfinder.controller.controllers;
 import com.backend.gapfinder.view.dto.UserBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.NearbyFriendsService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,8 +30,11 @@ public class UserContextController {
     public List<UserBasicDTO> updateLocationByGps(
             @PathVariable Long userId,
             @RequestParam double latitude,
-            @RequestParam double longitude) {
+            @RequestParam double longitude,
+            @AuthenticationPrincipal UserModel me) {
 
+        // A user can only update their own location
+        AccessGuard.requireSameUser(me, userId);
         List<UserModel> friends = nearbyFriendsService.updateLocationByCoordinates(userId, latitude, longitude);
         return modelMapper.map(friends, new TypeToken<List<UserBasicDTO>>() {}.getType());
     }
@@ -39,8 +44,11 @@ public class UserContextController {
     @PatchMapping("/{userId}/location")
     public List<UserBasicDTO> updateLocation(
             @PathVariable Long userId,
-            @RequestParam Long buildingId) {
+            @RequestParam Long buildingId,
+            @AuthenticationPrincipal UserModel me) {
 
+        // A user can only update their own location
+        AccessGuard.requireSameUser(me, userId);
         List<UserModel> friends = nearbyFriendsService.updateLocationAndGetNearbyFriends(userId, buildingId);
         return modelMapper.map(friends, new TypeToken<List<UserBasicDTO>>() {}.getType());
     }
@@ -48,7 +56,9 @@ public class UserContextController {
     // Get friends currently in the same building as the user
     // GET /users/{userId}/friends/nearby
     @GetMapping("/{userId}/friends/nearby")
-    public List<UserBasicDTO> getNearbyFriends(@PathVariable Long userId) {
+    public List<UserBasicDTO> getNearbyFriends(@PathVariable Long userId, @AuthenticationPrincipal UserModel me) {
+        // Only the user can see which of their friends are nearby
+        AccessGuard.requireSameUser(me, userId);
         List<UserModel> friends = nearbyFriendsService.getNearbyFriends(userId);
         return modelMapper.map(friends, new TypeToken<List<UserBasicDTO>>() {}.getType());
     }

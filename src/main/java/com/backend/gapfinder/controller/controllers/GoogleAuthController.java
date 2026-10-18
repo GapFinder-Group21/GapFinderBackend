@@ -14,8 +14,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @RestController
@@ -26,8 +29,16 @@ public class GoogleAuthController {
     private final GoogleCredentialRepository googleCredentialRepository;
     private final UserService userService;
 
+    // How long the Google connection link stays valid
+    private static final Duration STATE_TTL = Duration.ofMinutes(10);
+
     @Value("${google.redirect-uri}")
     private String redirectUri;
+
+    // Random OAuth "state" -> user who asked for the link; the callback only trusts states created here
+    private final Map<String, PendingState> pendingStates = new ConcurrentHashMap<>();
+
+    private record PendingState(Long userId, Instant expiresAt) {}
 
     public GoogleAuthController(GoogleAuthorizationCodeFlow flow,
                                 GoogleCredentialRepository googleCredentialRepository,
@@ -39,9 +50,16 @@ public class GoogleAuthController {
 
     @GetMapping("/auth-url")
     public Map<String, String> getAuthUrl(@AuthenticationPrincipal UserModel user) {
+        // Old links that were never used are discarded
+        Instant now = Instant.now();
+        pendingStates.values().removeIf(pending -> pending.expiresAt().isBefore(now));
+
+        String state = UUID.randomUUID().toString();
+        pendingStates.put(state, new PendingState(user.getId(), now.plus(STATE_TTL)));
+
         String url = flow.newAuthorizationUrl()
                 .setRedirectUri(redirectUri)
-                .setState(String.valueOf(user.getId()))
+                .setState(state)
                 .build();
 
         return Map.of("url", url);
@@ -50,7 +68,12 @@ public class GoogleAuthController {
     @GetMapping("/callback")
     public String callback(@RequestParam("code") String code,
                            @RequestParam("state") String state) throws Exception {
-        Long userId = Long.parseLong(state);
+        // The state is single use and identifies the user who started the connection
+        PendingState pending = pendingStates.remove(state);
+        if (pending == null || pending.expiresAt().isBefore(Instant.now())) {
+            throw new IllegalArgumentException("El enlace para conectar Google no es válido o expiró, genera uno nuevo");
+        }
+        Long userId = pending.userId();
 
         GoogleTokenResponse tokenResponse = flow.newTokenRequest(code)
                 .setRedirectUri(redirectUri)

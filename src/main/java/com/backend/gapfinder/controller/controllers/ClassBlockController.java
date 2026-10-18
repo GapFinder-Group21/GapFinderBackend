@@ -2,13 +2,16 @@ package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.ClassBlockBasicDTO;
 import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.ClassBlockService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -43,7 +46,10 @@ public class ClassBlockController {
     // POST /class-blocks/user/{userId}
     @PostMapping("/user/{userId}")
     @ResponseStatus(HttpStatus.CREATED)
-    public ClassBlockBasicDTO createClassBlock(@PathVariable Long userId, @RequestBody ClassBlockBasicDTO dto) {
+    public ClassBlockBasicDTO createClassBlock(@PathVariable Long userId, @RequestBody ClassBlockBasicDTO dto,
+                                               @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own schedule
+        AccessGuard.requireSameUser(me, userId);
         ClassBlockModel classBlockModel = modelMapper.map(dto, ClassBlockModel.class);
         ClassBlockModel created = classBlockService.create(userId, classBlockModel);
         return modelMapper.map(created, ClassBlockBasicDTO.class);
@@ -52,7 +58,10 @@ public class ClassBlockController {
     // Actualiza una clase existente
     // PUT /class-blocks/{id}
     @PutMapping("/{id}")
-    public ClassBlockBasicDTO updateClassBlock(@PathVariable Long id, @RequestBody ClassBlockBasicDTO dto) {
+    public ClassBlockBasicDTO updateClassBlock(@PathVariable Long id, @RequestBody ClassBlockBasicDTO dto,
+                                               @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own schedule
+        AccessGuard.requireSameUser(me, classBlockService.getById(id).getUser().getId());
         ClassBlockModel classBlockModel = modelMapper.map(dto, ClassBlockModel.class);
         ClassBlockModel updated = classBlockService.update(id, classBlockModel);
         return modelMapper.map(updated, ClassBlockBasicDTO.class);
@@ -62,7 +71,9 @@ public class ClassBlockController {
     // DELETE /class-blocks/{id}
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteClassBlock(@PathVariable Long id) {
+    public void deleteClassBlock(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own schedule
+        AccessGuard.requireSameUser(me, classBlockService.getById(id).getUser().getId());
         classBlockService.delete(id);
     }
 

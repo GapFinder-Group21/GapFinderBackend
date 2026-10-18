@@ -1,6 +1,7 @@
 package com.backend.gapfinder.model.services;
 
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
+import com.backend.gapfinder.model.exceptions.ForbiddenException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.NotificationModel;
 import com.backend.gapfinder.model.models.UserModel;
@@ -90,7 +91,7 @@ public class NotificationService {
         NotificationModel notification = getById(notificationId);
 
         if (!notification.getRecipient().getId().equals(userId)) {
-            throw new IllegalArgumentException("La notificación no pertenece a este usuario");
+            throw new ForbiddenException("La notificación no pertenece a este usuario");
         }
 
         notification.setRead(true);

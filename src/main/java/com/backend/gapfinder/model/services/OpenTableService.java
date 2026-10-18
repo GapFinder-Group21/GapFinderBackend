@@ -61,6 +61,11 @@ public class OpenTableService {
 
         validateOpenTableData(openTable);
 
+        // A new table must still be running when it is published
+        if (!openTable.getEndTime().isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("La hora de fin de la open table ya pasó");
+        }
+
         UserModel creator = userService.getById(openTable.getCreator().getId());
         BuildingModel building = buildingService.getById(openTable.getBuilding().getId());
         ActivityModel activity = resolveActivity(openTable.getActivity());
@@ -69,6 +74,8 @@ public class OpenTableService {
         openTable.setCreator(creator);
         openTable.setBuilding(building);
         openTable.setActivity(activity);
+        // Every table starts OPEN; joins, leaves and the scheduler move it to the other states
+        openTable.setStatus(OpenTableStatusEnum.OPEN);
         openTable.setCreatedAt(LocalDateTime.now());
 
         log.info("Termina proceso de creación de una open table con título = {}", openTable.getTitle());
@@ -83,11 +90,18 @@ public class OpenTableService {
         OpenTableModel existente = getById(id);
         validateOpenTableData(openTable);
 
-        UserModel creator = userService.getById(openTable.getCreator().getId());
+        // The limit cannot go below the students already in the table
+        long participants = openTableParticipantRepository.countByOpenTableId(id);
+        if (openTable.getMaxParticipants() < participants) {
+            throw new IllegalArgumentException(
+                    "El máximo de participantes no puede ser menor a los " + participants + " inscritos");
+        }
+
         BuildingModel building = buildingService.getById(openTable.getBuilding().getId());
         ActivityModel activity = resolveActivity(openTable.getActivity());
 
-        existente.setCreator(creator);
+        // The creator and the status are not edited here: the creator owns the table
+        // and the status follows the participants and the table times
         existente.setBuilding(building);
         existente.setActivity(activity);
         existente.setTitle(openTable.getTitle());
@@ -95,7 +109,12 @@ public class OpenTableService {
         existente.setStartTime(openTable.getStartTime());
         existente.setEndTime(openTable.getEndTime());
         existente.setMaxParticipants(openTable.getMaxParticipants());
-        existente.setStatus(openTable.getStatus());
+
+        // An active table is FULL only while it has reached its limit
+        if (existente.getStatus() == OpenTableStatusEnum.OPEN || existente.getStatus() == OpenTableStatusEnum.FULL) {
+            existente.setStatus(participants >= existente.getMaxParticipants()
+                    ? OpenTableStatusEnum.FULL : OpenTableStatusEnum.OPEN);
+        }
 
         log.info("Termina proceso de actualización de la open table con id = {}", id);
         return openTableRepository.save(existente);
@@ -107,6 +126,9 @@ public class OpenTableService {
         log.info("Inicia proceso de eliminación de la open table con id = {}", id);
 
         OpenTableModel existente = getById(id);
+
+        // The participants belong to the table, so they are removed with it
+        openTableParticipantRepository.deleteAll(openTableParticipantRepository.findByOpenTableId(id));
         openTableRepository.delete(existente);
 
         log.info("Termina proceso de eliminación de la open table con id = {}", id);
@@ -116,11 +138,16 @@ public class OpenTableService {
     @Scheduled(fixedRate = 60000)
     @Transactional
     public void closeExpiredTables() {
-        log.info("Inicia proceso de cierre de open tables vencidas");
-
         List<OpenTableModel> expired = openTableRepository.findByStatusInAndEndTimeBefore(
                 List.of(OpenTableStatusEnum.OPEN, OpenTableStatusEnum.FULL),
                 LocalDateTime.now());
+
+        // Runs every minute, so it only logs when there is something to close
+        if (expired.isEmpty()) {
+            return;
+        }
+
+        log.info("Inicia proceso de cierre de open tables vencidas");
 
         for (OpenTableModel table : expired) {
             long participants = openTableParticipantRepository.countByOpenTableId(table.getId());
@@ -155,10 +182,13 @@ public class OpenTableService {
         if (openTable.getMaxParticipants() == null || openTable.getMaxParticipants() <= 0) {
             throw new IllegalArgumentException("El número máximo de participantes debe ser positivo");
         }
+    }
 
-        if (openTable.getStatus() == null) {
-            throw new IllegalArgumentException("Debe indicar el estado de la open table (status)");
-        }
+    // Get an open table locking it, used when its participants change
+    @Transactional
+    public OpenTableModel getByIdForUpdate(Long id) {
+        return openTableRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new NotFoundException("La open table con id " + id + " no existe"));
     }
 
     // Resolve the activity from the id provided

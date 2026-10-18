@@ -10,11 +10,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Data;
 
 
 @Entity
-@Table(name = "participants_open_tables")
+// A student can be in the same open table only once
+@Table(
+    name = "participants_open_tables",
+    uniqueConstraints = @UniqueConstraint(columnNames = {"open_table_id", "user_id"})
+)
 
 @Data
 

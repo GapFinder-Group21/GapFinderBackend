@@ -4,13 +4,17 @@ import com.backend.gapfinder.view.dto.MatchBasicDTO;
 import com.backend.gapfinder.view.dto.MatchCompleteDTO;
 import com.backend.gapfinder.view.dto.responses.MatchCandidateResponseDTO;
 import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.services.GapService;
 import com.backend.gapfinder.model.services.MatchService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,10 +22,12 @@ import org.springframework.web.bind.annotation.*;
 public class MatchController {
 
     private final MatchService matchService;
+    private final GapService gapService;
     private final ModelMapper modelMapper;
 
-    public MatchController(MatchService matchService, ModelMapper modelMapper) {
+    public MatchController(MatchService matchService, GapService gapService, ModelMapper modelMapper) {
         this.matchService = matchService;
+        this.gapService = gapService;
         this.modelMapper = modelMapper;
     }
 
@@ -60,8 +66,11 @@ public class MatchController {
     public MatchBasicDTO sendMatchRequest(
             @RequestParam Long proposerGapId,
             @RequestParam Long acceptorGapId,
-            @RequestParam Double score) {
+            @RequestParam Double score,
+            @AuthenticationPrincipal UserModel me) {
 
+        // A user can only propose matches from their own gap
+        AccessGuard.requireSameUser(me, gapService.getById(proposerGapId).getUser().getId());
         MatchModel match = matchService.sendMatchRequest(proposerGapId, acceptorGapId, score);
         return modelMapper.map(match, MatchBasicDTO.class);
     }
@@ -71,7 +80,11 @@ public class MatchController {
     @PatchMapping("/{id}/accept")
     public MatchCompleteDTO acceptMatch(
             @PathVariable Long id,
-            @RequestParam Long userId) {
+            @RequestParam Long userId,
+            @AuthenticationPrincipal UserModel me) {
+
+        // A user can only answer requests in their own name
+        AccessGuard.requireSameUser(me, userId);
 
         MatchModel match = matchService.acceptMatch(id, userId);
         return modelMapper.map(match, MatchCompleteDTO.class);
@@ -82,7 +95,11 @@ public class MatchController {
     @PatchMapping("/{id}/reject")
     public MatchCompleteDTO rejectMatch(
             @PathVariable Long id,
-            @RequestParam Long userId) {
+            @RequestParam Long userId,
+            @AuthenticationPrincipal UserModel me) {
+
+        // A user can only answer requests in their own name
+        AccessGuard.requireSameUser(me, userId);
 
         MatchModel match = matchService.rejectMatch(id, userId);
         return modelMapper.map(match, MatchCompleteDTO.class);
@@ -91,7 +108,8 @@ public class MatchController {
     // Mark an accepted match as completed once its meeting time has ended
     // PATCH /matches/57/complete
     @PatchMapping("/{id}/complete")
-    public MatchBasicDTO completeMatch(@PathVariable Long id) {
+    public MatchBasicDTO completeMatch(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        requireParticipant(matchService.getById(id), me);
         MatchModel match = matchService.completeMatch(id);
         return modelMapper.map(match, MatchBasicDTO.class);
     }
@@ -100,7 +118,11 @@ public class MatchController {
     // POST /matches
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MatchBasicDTO createMatch(@RequestBody MatchBasicDTO dto) {
+    public MatchBasicDTO createMatch(@RequestBody MatchBasicDTO dto, @AuthenticationPrincipal UserModel me) {
+        // A user can only propose matches from their own gap
+        if (dto.getProposerGapId() != null) {
+            AccessGuard.requireSameUser(me, gapService.getById(dto.getProposerGapId()).getUser().getId());
+        }
         MatchModel matchModel = modelMapper.map(dto, MatchModel.class);
         MatchModel created = matchService.create(matchModel);
         return modelMapper.map(created, MatchBasicDTO.class);
@@ -109,7 +131,9 @@ public class MatchController {
     // Update an existing match
     // PUT /matches/{id}
     @PutMapping("/{id}")
-    public MatchBasicDTO updateMatch(@PathVariable Long id, @RequestBody MatchBasicDTO dto) {
+    public MatchBasicDTO updateMatch(@PathVariable Long id, @RequestBody MatchBasicDTO dto,
+                                     @AuthenticationPrincipal UserModel me) {
+        requireParticipant(matchService.getById(id), me);
         MatchModel matchModel = modelMapper.map(dto, MatchModel.class);
         MatchModel updated = matchService.update(id, matchModel);
         return modelMapper.map(updated, MatchBasicDTO.class);
@@ -119,15 +143,27 @@ public class MatchController {
     // DELETE /matches/{id}
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteMatch(@PathVariable Long id) {
+    public void deleteMatch(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        requireParticipant(matchService.getById(id), me);
         matchService.delete(id);
     }
 
     // Get the pending match requests received by a user
     // GET /matches/user/{userId}/pending
     @GetMapping("/user/{userId}/pending")
-    public List<MatchCompleteDTO> getPendingReceived(@PathVariable Long userId) {
+    public List<MatchCompleteDTO> getPendingReceived(@PathVariable Long userId,
+                                                     @AuthenticationPrincipal UserModel me) {
+        // Only the user can see the requests they received
+        AccessGuard.requireSameUser(me, userId);
         List<MatchModel> matches = matchService.getPendingReceived(userId);
         return modelMapper.map(matches, new TypeToken<List<MatchCompleteDTO>>() {}.getType());
 }
+
+    // Only the two users of the match (proposer or receiver) can change it
+    private void requireParticipant(MatchModel match, UserModel me) {
+        Long proposerId = match.getProposerGap().getUser().getId();
+        if (me == null || !me.getId().equals(proposerId)) {
+            AccessGuard.requireSameUser(me, match.getAcceptorGap().getUser().getId());
+        }
+    }
 }

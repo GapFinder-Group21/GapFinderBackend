@@ -12,5 +12,11 @@ public class OpenTableParticipantBasicDTO {
     // Date and time when the student joined
     private LocalDateTime joinedAt;
 
+    // Id of the open table joined
+    private Long openTableId;
+
+    // Id of the student who joined
+    private Long userId;
+
     
 }

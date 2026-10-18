@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +51,25 @@ public class UserService {
 
         validateUserData(user);
 
+        // An account needs a password; the public way to create one is /auth/register
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            throw new IllegalArgumentException("Para crear una cuenta usa /auth/register");
+        }
+
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new IllegalArgumentException("El correo del usuario es obligatorio");
+        }
+
+        // Emails are stored lowercase, as in the register flow
+        String email = user.getEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("Ya existe una cuenta con ese correo");
+        }
+
         user.setId(null);
+        user.setEmail(email);
+        user.setVerified(false);
+        user.setCreatedAt(LocalDateTime.now());
         user.setInterests(resolveInterests(user.getInterests()));
         user.setCurrentBuilding(resolveCurrentBuilding(user.getCurrentBuilding()));
 
@@ -69,8 +88,20 @@ public class UserService {
         existente.setName(user.getName());
         existente.setPhoneNumber(user.getPhoneNumber());
         existente.setCareer(user.getCareer());
-        existente.setInterests(resolveInterests(user.getInterests()));
-        existente.setCurrentBuilding(resolveCurrentBuilding(user.getCurrentBuilding()));
+
+        // Optional fields: only the ones sent in the request are changed
+        if (user.getSemester() != null) {
+            existente.setSemester(user.getSemester());
+        }
+        if (user.getPreferredEffort() != null) {
+            existente.setPreferredEffort(user.getPreferredEffort());
+        }
+        if (user.getInterests() != null) {
+            existente.setInterests(resolveInterests(user.getInterests()));
+        }
+        if (user.getCurrentBuilding() != null) {
+            existente.setCurrentBuilding(resolveCurrentBuilding(user.getCurrentBuilding()));
+        }
 
         log.info("Termina proceso de actualización del usuario con id = {}", id);
         return userRepository.save(existente);

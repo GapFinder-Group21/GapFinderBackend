@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.responses.MatchCandidateResponseDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 import com.backend.gapfinder.model.events.MatchEvent;
+import com.backend.gapfinder.model.exceptions.ForbiddenException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.GapModel;
 import com.backend.gapfinder.model.models.MatchModel;
@@ -25,12 +26,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 @Service
 public class MatchService {
+
+    // A gap with a match in one of these states already has a meeting booked
+    private static final List<MatchStatusEnum> BOOKED_STATUSES =
+            List.of(MatchStatusEnum.ACCEPTED, MatchStatusEnum.COMPLETED);
+
+    // A request in one of these states between two gaps is still alive
+    private static final List<MatchStatusEnum> OPEN_REQUEST_STATUSES =
+            List.of(MatchStatusEnum.PENDING, MatchStatusEnum.ACCEPTED);
 
     private final MatchRepository matchRepository;
     private final GapRepository gapRepository;
@@ -73,40 +83,43 @@ public class MatchService {
     }
 
     // Create a new match
+    // A new match is a match request: it starts PENDING and the meeting time is the overlap of both gaps
     @Transactional
     public MatchModel create(MatchModel match) {
         log.info("Inicia proceso de creación de un match");
 
         validateMatchData(match);
 
-        GapModel proposerGap = gapService.getById(match.getProposerGap().getId());
-        GapModel acceptorGap = gapService.getById(match.getAcceptorGap().getId());
-
-        match.setId(null);
-        match.setProposerGap(proposerGap);
-        match.setAcceptorGap(acceptorGap);
+        MatchModel saved = sendMatchRequest(
+                match.getProposerGap().getId(), match.getAcceptorGap().getId(), match.getScore());
 
         log.info("Termina proceso de creación de un match");
-        return matchRepository.save(match);
+        return saved;
     }
 
     // Update the data from an existing match
+    // Only a pending request can be edited; its status changes through accept, reject and complete
     @Transactional
     public MatchModel update(Long id, MatchModel match) {
         log.info("Inicia proceso de actualización del match con id = {}", id);
 
         MatchModel existente = getById(id);
         validateMatchData(match);
+        validatePending(existente);
 
         GapModel proposerGap = gapService.getById(match.getProposerGap().getId());
         GapModel acceptorGap = gapService.getById(match.getAcceptorGap().getId());
 
+        validateDifferentUsers(proposerGap, acceptorGap);
+        validateScore(proposerGap, acceptorGap, match.getScore());
+
+        LocalDateTime[] meeting = calculateMeetingWindow(proposerGap, acceptorGap);
+
         existente.setProposerGap(proposerGap);
         existente.setAcceptorGap(acceptorGap);
-        existente.setStartTime(match.getStartTime());
-        existente.setEndTime(match.getEndTime());
+        existente.setStartTime(meeting[0]);
+        existente.setEndTime(meeting[1]);
         existente.setScore(match.getScore());
-        existente.setStatus(match.getStatus());
 
         log.info("Termina proceso de actualización del match con id = {}", id);
         return matchRepository.save(existente);
@@ -133,25 +146,14 @@ public class MatchService {
             throw new IllegalArgumentException("Debe indicar el gap del aceptante (acceptorGap)");
         }
 
-        if (match.getStartTime() == null || match.getEndTime() == null) {
-            throw new IllegalArgumentException("La hora de inicio y fin son obligatorias");
-        }
-
-        if (!match.getStartTime().isBefore(match.getEndTime())) {
-            throw new IllegalArgumentException("La hora de inicio debe ser antes de la hora de fin");
-        }
-
         if (match.getScore() == null) {
             throw new IllegalArgumentException("El score del match es obligatorio");
-        }
-
-        if (match.getStatus() == null) {
-            throw new IllegalArgumentException("Debe indicar el estado del match (status)");
         }
     }
 
 
     // Find candidate gaps for a given gap, scored and sorted from best to worst
+    // Only gaps that have not ended and are free (no accepted or completed match) are candidates
     @Transactional(readOnly = true)
     public List<MatchCandidateResponseDTO> findCandidates(Long gapId, boolean useSameCareer,
                                                             boolean useSharedInterests, boolean useEffort) {
@@ -159,8 +161,15 @@ public class MatchService {
 
         GapModel targetGap = gapService.getById(gapId);
 
+        // A gap that already has a meeting booked does not look for more matches
+        if (matchRepository.existsByGapAndStatusIn(targetGap.getId(), BOOKED_STATUSES)) {
+            log.info("El gap con id = {} ya tiene un match aceptado, no se buscan candidatos", gapId);
+            return List.of();
+        }
+
         List<GapModel> candidates = gapRepository.findOverlappingGapsExcludingUser(
-                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime());
+                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime(),
+                LocalDateTime.now());
 
         List<MatchCandidateResponseDTO> result = candidates.stream()
                 .map(candidateGap -> {
@@ -204,26 +213,31 @@ public class MatchService {
         GapModel proposerGap = gapService.getById(proposerGapId);
         GapModel acceptorGap = gapService.getById(acceptorGapId);
 
-        // A user cannot match with their own gap, even if the gap id is different
-        if (proposerGap.getUser().getId().equals(acceptorGap.getUser().getId())) {
-            throw new IllegalArgumentException("Un usuario no puede hacer match consigo mismo");
-        }
+        validateDifferentUsers(proposerGap, acceptorGap);
 
         // The actual meeting time is the overlap window between both gaps
-        LocalDateTime meetingStart = proposerGap.getStartTime().isAfter(acceptorGap.getStartTime())
-                ? proposerGap.getStartTime() : acceptorGap.getStartTime();
-        LocalDateTime meetingEnd = proposerGap.getEndTime().isBefore(acceptorGap.getEndTime())
-                ? proposerGap.getEndTime() : acceptorGap.getEndTime();
+        LocalDateTime[] meeting = calculateMeetingWindow(proposerGap, acceptorGap);
 
-        if (!meetingStart.isBefore(meetingEnd)) {
-            throw new IllegalArgumentException("Los gaps seleccionados no tienen un solape de tiempo válido");
+        // A meeting that already ended cannot be proposed
+        if (!meeting[1].isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("El tiempo en común entre los gaps ya pasó");
         }
+
+        // A gap can only have one meeting booked
+        validateGapsAreFree(proposerGap, acceptorGap);
+
+        // Only one live request between the same two gaps
+        if (matchRepository.existsBetweenGapsAndStatusIn(proposerGapId, acceptorGapId, OPEN_REQUEST_STATUSES)) {
+            throw new IllegalStateException("Ya existe una solicitud de match entre estos gaps");
+        }
+
+        validateScore(proposerGap, acceptorGap, score);
 
         MatchModel match = new MatchModel();
         match.setProposerGap(proposerGap);
         match.setAcceptorGap(acceptorGap);
-        match.setStartTime(meetingStart);
-        match.setEndTime(meetingEnd);
+        match.setStartTime(meeting[0]);
+        match.setEndTime(meeting[1]);
         match.setScore(score);
         match.setStatus(MatchStatusEnum.PENDING);
 
@@ -247,6 +261,14 @@ public class MatchService {
         MatchModel match = getById(matchId);
         validateAcceptor(match, userId);
         validatePending(match);
+
+        // A request whose meeting time already passed cannot be accepted
+        if (!match.getEndTime().isAfter(LocalDateTime.now())) {
+            throw new IllegalStateException("La hora del match ya pasó, no es posible aceptarlo");
+        }
+
+        // A gap can only have one meeting booked
+        validateGapsAreFree(match.getProposerGap(), match.getAcceptorGap());
 
         match.setStatus(MatchStatusEnum.ACCEPTED);
         MatchModel saved = matchRepository.save(match);
@@ -286,7 +308,7 @@ public class MatchService {
     // Check that the user responding is the owner of the acceptor gap
     private void validateAcceptor(MatchModel match, Long userId) {
         if (!match.getAcceptorGap().getUser().getId().equals(userId)) {
-            throw new IllegalArgumentException("Solo el usuario del gap receptor puede responder esta solicitud");
+            throw new ForbiddenException("Solo el usuario del gap receptor puede responder esta solicitud");
         }
     }
 
@@ -320,22 +342,82 @@ public class MatchService {
         }
     }
 
-    // Runs automatically every 5 minutes to complete accepted matches whose meeting time already ended
+    // Both gaps must belong to different users
+    private void validateDifferentUsers(GapModel proposerGap, GapModel acceptorGap) {
+        if (proposerGap.getUser().getId().equals(acceptorGap.getUser().getId())) {
+            throw new IllegalArgumentException("Un usuario no puede hacer match consigo mismo");
+        }
+    }
+
+    // Neither gap can already have an accepted or completed match
+    private void validateGapsAreFree(GapModel proposerGap, GapModel acceptorGap) {
+        if (matchRepository.existsByGapAndStatusIn(proposerGap.getId(), BOOKED_STATUSES)
+                || matchRepository.existsByGapAndStatusIn(acceptorGap.getId(), BOOKED_STATUSES)) {
+            throw new IllegalStateException("Uno de los gaps ya tiene un match aceptado en ese horario");
+        }
+    }
+
+    // The meeting time is the overlap of both gaps: [later start, earlier end]
+    private LocalDateTime[] calculateMeetingWindow(GapModel proposerGap, GapModel acceptorGap) {
+        LocalDateTime meetingStart = proposerGap.getStartTime().isAfter(acceptorGap.getStartTime())
+                ? proposerGap.getStartTime() : acceptorGap.getStartTime();
+        LocalDateTime meetingEnd = proposerGap.getEndTime().isBefore(acceptorGap.getEndTime())
+                ? proposerGap.getEndTime() : acceptorGap.getEndTime();
+
+        if (!meetingStart.isBefore(meetingEnd)) {
+            throw new IllegalArgumentException("Los gaps seleccionados no tienen un solape de tiempo válido");
+        }
+
+        return new LocalDateTime[] {meetingStart, meetingEnd};
+    }
+
+    // The score comes from findCandidates, so it can never be higher than all the strategies together
+    private void validateScore(GapModel proposerGap, GapModel acceptorGap, Double score) {
+        if (score == null || score < 0) {
+            throw new IllegalArgumentException("El score del match debe ser un número positivo");
+        }
+
+        double maxScore = overlapStrategy.calculateScore(proposerGap, acceptorGap)
+                + sameCareerStrategy.calculateScore(proposerGap, acceptorGap)
+                + sharedInterestStrategy.calculateScore(proposerGap, acceptorGap)
+                + effortStrategy.calculateScore(proposerGap, acceptorGap);
+
+        if (score > maxScore) {
+            throw new IllegalArgumentException("El score no puede ser mayor al máximo posible para estos gaps ("
+                    + maxScore + ")");
+        }
+    }
+
+    // Runs automatically every 5 minutes to close the matches whose meeting time already ended:
+    // accepted ones become COMPLETED and pending ones that nobody answered become REJECTED
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional
     public void completeExpiredMatches() {
-        log.info("Inicia proceso de finalización automática de matches vencidos");
-
-        List<MatchModel> acceptedMatches = matchRepository.findByStatus(MatchStatusEnum.ACCEPTED);
-
         LocalDateTime now = LocalDateTime.now();
-        acceptedMatches.stream()
+        List<MatchModel> changed = new ArrayList<>();
+
+        matchRepository.findByStatus(MatchStatusEnum.ACCEPTED).stream()
                 .filter(match -> !now.isBefore(match.getEndTime()))
-                .forEach(match -> match.setStatus(MatchStatusEnum.COMPLETED));
+                .forEach(match -> {
+                    match.setStatus(MatchStatusEnum.COMPLETED);
+                    changed.add(match);
+                });
 
-        matchRepository.saveAll(acceptedMatches);
+        matchRepository.findByStatus(MatchStatusEnum.PENDING).stream()
+                .filter(match -> !now.isBefore(match.getEndTime()))
+                .forEach(match -> {
+                    match.setStatus(MatchStatusEnum.REJECTED);
+                    changed.add(match);
+                });
 
-        log.info("Termina proceso de finalización automática de matches vencidos");
+        // Runs often, so it only saves and logs when something changed
+        if (changed.isEmpty()) {
+            return;
+        }
+
+        matchRepository.saveAll(changed);
+
+        log.info("Finalización automática de matches vencidos: {} actualizados", changed.size());
     }
 
     // Get the pending match requests received by a user

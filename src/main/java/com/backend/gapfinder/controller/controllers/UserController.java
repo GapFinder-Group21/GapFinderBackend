@@ -3,12 +3,14 @@ package com.backend.gapfinder.controller.controllers;
 import com.backend.gapfinder.view.dto.UserBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.UserService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -52,7 +54,10 @@ public class UserController {
     // Update an existing user
     // PUT /users/{id}
     @PutMapping("/{id}")
-    public UserBasicDTO updateUser(@PathVariable Long id, @RequestBody UserBasicDTO dto) {
+    public UserBasicDTO updateUser(@PathVariable Long id, @RequestBody UserBasicDTO dto,
+                                   @AuthenticationPrincipal UserModel me) {
+        // Only the owner of the account can edit it
+        AccessGuard.requireSameUser(me, id);
         UserModel userModel = modelMapper.map(dto, UserModel.class);
         UserModel updated = userService.update(id, userModel);
         return modelMapper.map(updated, UserBasicDTO.class);
@@ -62,14 +67,19 @@ public class UserController {
     // DELETE /users/{id}
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable Long id) {
+    public void deleteUser(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        // Only the owner of the account can delete it
+        AccessGuard.requireSameUser(me, id);
         userService.delete(id);
     }
 
     // Add an interest to a user
     // POST /users/{userId}/interests/{interestId}
     @PostMapping("/{userId}/interests/{interestId}")
-    public UserBasicDTO addInterest(@PathVariable Long userId, @PathVariable Long interestId) {
+    public UserBasicDTO addInterest(@PathVariable Long userId, @PathVariable Long interestId,
+                                    @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own interests
+        AccessGuard.requireSameUser(me, userId);
         UserModel updated = userService.addInterest(userId, interestId);
         return modelMapper.map(updated, UserBasicDTO.class);
     }

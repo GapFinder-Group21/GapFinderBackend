@@ -1,5 +1,8 @@
 package com.backend.gapfinder.controller.handlers;
 
+import com.backend.gapfinder.controller.controllers.AuthController;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -10,7 +13,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice
+// Error responses for the auth endpoints only (register, login, refresh, logout)
+@Order(Ordered.HIGHEST_PRECEDENCE)
+@RestControllerAdvice(assignableTypes = AuthController.class)
 public class AuthExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)

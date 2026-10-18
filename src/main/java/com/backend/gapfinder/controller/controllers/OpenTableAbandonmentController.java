@@ -5,7 +5,9 @@ import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.model.enums.OpenTableCreationStepEnum;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.OpenTableAbandonmentModel;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.OpenTableAbandonmentService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +18,7 @@ import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -36,7 +39,11 @@ public class OpenTableAbandonmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public OpenTableAbandonmentBasicDTO createAbandonment(
             @PathVariable Long userId,
-            @Valid @RequestBody OpenTableAbandonmentBasicDTO dto) {
+            @Valid @RequestBody OpenTableAbandonmentBasicDTO dto,
+            @AuthenticationPrincipal UserModel me) {
+
+        // A user can only register their own abandoned flows
+        AccessGuard.requireSameUser(me, userId);
 
         OpenTableAbandonmentModel abandonment = new OpenTableAbandonmentModel();
         abandonment.setStep(dto.step());

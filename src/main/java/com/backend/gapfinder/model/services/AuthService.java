@@ -35,10 +35,6 @@ public class AuthService {
 
     // Crea un usuario nuevo y le devuelve sus tokens de sesión
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Ya existe una cuenta con ese correo");
-        }
-
         // Antes de crear el usuario: normaliza el correo y úsalo también en la validación
         String email = request.email().toLowerCase().trim();
         if (userRepository.existsByEmail(email)) {

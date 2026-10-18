@@ -80,10 +80,11 @@ public class OpenTableAbandonmentService {
             throw new IllegalArgumentException("Solo se puede tener edificio si el abandono fue en el paso LOCATION");
         }
 
+        // The max participants is set in the PARTICIPANTS step, so it can come from that step or a later one
         if (abandonment.getMaxParticipants() != null) {
-            if (abandonment.getStep() != OpenTableCreationStepEnum.PARTICIPANTS) {
+            if (abandonment.getStep().ordinal() < OpenTableCreationStepEnum.PARTICIPANTS.ordinal()) {
                 throw new IllegalArgumentException(
-                        "Solo se puede tener máximo de participantes si el abandono fue en el paso PARTICIPANTS");
+                        "Solo se puede tener máximo de participantes si el abandono fue en el paso PARTICIPANTS o después");
             }
             if (abandonment.getMaxParticipants() <= 0) {
                 throw new IllegalArgumentException("El máximo de participantes debe ser mayor a 0");

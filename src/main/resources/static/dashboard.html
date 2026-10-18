@@ -138,6 +138,21 @@
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; }
+
+  /* Pager under the BQ 6 table */
+  .pager { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .pager button {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--card);
+    color: var(--accent);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pager button:hover:not(:disabled) { background: var(--accent-soft); }
+  .pager button:disabled { opacity: .4; cursor: default; }
 </style>
 </head>
 <body>
@@ -363,24 +378,54 @@
       </div>`;
   }
 
-  // BQ 6: simple table with the favorite activity of each student
-  function renderBq6(rows) {
-    const box = document.getElementById('bq6');
-    if (!rows || rows.length === 0) return showEmpty(box);
+  // BQ 6: table with the favorite activity of each student, 10 students per page
+  const BQ6_PAGE_SIZE = 10;
+  let bq6Rows = [];
+  let bq6Page = 0;
 
-    const tableRows = rows.map(r => `
+  function renderBq6(rows) {
+    bq6Rows = rows || [];
+    if (bq6Rows.length === 0) return showEmpty(document.getElementById('bq6'));
+
+    // Keep the current page on auto refresh, unless it no longer exists
+    const lastPage = Math.ceil(bq6Rows.length / BQ6_PAGE_SIZE) - 1;
+    bq6Page = Math.min(bq6Page, lastPage);
+    drawBq6Page();
+  }
+
+  // Draws the current page of the BQ 6 table and its arrows (no new request to the backend)
+  function drawBq6Page() {
+    const box = document.getElementById('bq6');
+    const pages = Math.ceil(bq6Rows.length / BQ6_PAGE_SIZE);
+    const start = bq6Page * BQ6_PAGE_SIZE;
+
+    const tableRows = bq6Rows.slice(start, start + BQ6_PAGE_SIZE).map(r => `
       <tr>
         <td>${esc(r.userName)}</td>
         <td>${esc(r.activityName)}</td>
         <td>${r.timesChosen}</td>
       </tr>`).join('');
+
+    // The pager only shows when there is more than one page
+    const pager = pages <= 1 ? '' : `
+      <div class="pager">
+        <button id="bq6Prev" aria-label="Previous page" ${bq6Page === 0 ? 'disabled' : ''}>◀</button>
+        <span>Page ${bq6Page + 1} of ${pages} · ${bq6Rows.length} students</span>
+        <button id="bq6Next" aria-label="Next page" ${bq6Page === pages - 1 ? 'disabled' : ''}>▶</button>
+      </div>`;
+
     box.innerHTML = `
       <div class="table-wrap">
         <table>
           <thead><tr><th>Student</th><th>Favorite activity</th><th>Times chosen</th></tr></thead>
           <tbody>${tableRows}</tbody>
         </table>
-      </div>`;
+      </div>${pager}`;
+
+    if (pages > 1) {
+      document.getElementById('bq6Prev').onclick = () => { bq6Page--; drawBq6Page(); };
+      document.getElementById('bq6Next').onclick = () => { bq6Page++; drawBq6Page(); };
+    }
   }
 
   // BQ 5: column chart by duration range, the lowest coverage highlighted

@@ -82,6 +82,21 @@ public class ClassBlockService {
         ClassBlockModel existente = getById(id);
         validateClassBlockData(classBlock);
 
+        // The edited class cannot become a copy of another class of the same user
+        boolean yaExiste = classBlockRepository.existsByUserIdAndSubjectAndDayOfWeekAndStartTimeAndEndTimeAndIdNot(
+            existente.getUser().getId(),
+            classBlock.getSubject(),
+            classBlock.getDayOfWeek(),
+            classBlock.getStartTime(),
+            classBlock.getEndTime(),
+            id
+        );
+
+        if (yaExiste) {
+            throw new DuplicateClassBlockException(
+                "Ya existe un bloque igual para este usuario: " + classBlock.getSubject());
+        }
+
         existente.setSubject(classBlock.getSubject());
         existente.setLocation(classBlock.getLocation());
         existente.setDayOfWeek(classBlock.getDayOfWeek());

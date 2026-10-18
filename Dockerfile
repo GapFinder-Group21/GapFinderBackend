@@ -15,6 +15,9 @@ RUN mvn -B -q clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
+# Campus time zone: the app compares gaps, matches and open tables with the current local time
+ENV TZ=America/Bogota
+
 COPY --from=build /build/target/gapfinder-0.0.1-SNAPSHOT.jar app.jar
 
 EXPOSE 8080

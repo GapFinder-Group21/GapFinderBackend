@@ -12,14 +12,32 @@ import java.util.List;
 
 public interface GapRepository extends JpaRepository<GapModel, Long> {
 
-    // Finds potential gaps that overlap in time, belong to other users, and are NOT already in an ACCEPTED or COMPLETED match
+    // Finds potential gaps that overlap in time, belong to other users, have not ended yet,
+    // and are NOT already in an ACCEPTED or COMPLETED match
     @Query("SELECT g FROM GapModel g WHERE g.user.id <> :userId " +
            "AND g.startTime < :endTime AND g.endTime > :startTime " +
-           "AND NOT EXISTS (SELECT m FROM MatchModel m WHERE (m.proposerGap = g OR m.acceptorGap = g) AND m.status = com.backend.gapfinder.model.enums.MatchStatusEnum.ACCEPTED)")
+           "AND g.endTime > :now " +
+           "AND NOT EXISTS (SELECT m FROM MatchModel m WHERE (m.proposerGap = g OR m.acceptorGap = g) " +
+           "AND m.status IN (com.backend.gapfinder.model.enums.MatchStatusEnum.ACCEPTED, " +
+           "com.backend.gapfinder.model.enums.MatchStatusEnum.COMPLETED))")
     List<GapModel> findOverlappingGapsExcludingUser(
             @Param("userId") Long userId,
             @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime
+            @Param("endTime") LocalDateTime endTime,
+            @Param("now") LocalDateTime now
+    );
+
+    // Check if a user has a gap that overlaps the given range, leaving out one gap
+    // (the one being edited; 0 when creating a new gap)
+    @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM GapModel g " +
+           "WHERE g.user.id = :userId " +
+           "AND g.startTime < :endTime AND g.endTime > :startTime " +
+           "AND g.id <> :excludedId")
+    boolean existsOverlappingGapForUser(
+            @Param("userId") Long userId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("excludedId") Long excludedId
     );
 
     // Coverage per gap duration bucket: gap count, total gap minutes, total matched minutes

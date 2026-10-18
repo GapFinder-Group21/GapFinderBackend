@@ -56,7 +56,8 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**").permitAll()
+                // Logout is not listed: it needs the JWT to know whose session to close
+                .requestMatchers("/auth/register", "/auth/login", "/auth/refresh").permitAll()
                 .requestMatchers("/google/callback").permitAll()
                 // Local analytics dashboard: the page and its single data endpoint are open (the BQ endpoints stay protected)
                 .requestMatchers("/dashboard.html", "/analytics/dashboard").permitAll()

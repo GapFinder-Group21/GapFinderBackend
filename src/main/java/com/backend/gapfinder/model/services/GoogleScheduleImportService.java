@@ -10,7 +10,6 @@ import com.backend.gapfinder.model.models.ClassBlockModel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +55,7 @@ public class GoogleScheduleImportService {
 
         // Google Calendar imports the current Monday-Saturday window (see GoogleCalendarService.getEvents),
         // so the gaps are recalculated for that same week
-        LocalDate weekStart = LocalDate.now().with(DayOfWeek.MONDAY);
+        LocalDate weekStart = WeeklyGapService.currentOrNextWeekStart(LocalDate.now());
         weeklyGapService.generateWeekGaps(userId, weekStart);
 
         log.info("Importación terminada para el usuario {}: {} creados, {} omitidos",

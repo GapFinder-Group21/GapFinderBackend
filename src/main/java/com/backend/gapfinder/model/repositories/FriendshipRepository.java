@@ -20,4 +20,14 @@ public interface FriendshipRepository extends JpaRepository<FriendshipModel, Lon
         """)
     List<FriendshipModel> findByUserAndStatus(@Param("userId") Long userId,
                                               @Param("status") FriendshipStatusEnum status);
+
+    // Finds the friendships between two users, in either direction
+    @Query("""
+        SELECT f
+        FROM FriendshipModel f
+        WHERE (f.requester.id = :userA AND f.receiver.id = :userB)
+           OR (f.requester.id = :userB AND f.receiver.id = :userA)
+        """)
+    List<FriendshipModel> findBetweenUsers(@Param("userA") Long userA,
+                                           @Param("userB") Long userB);
 }

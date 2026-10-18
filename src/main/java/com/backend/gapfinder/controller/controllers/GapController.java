@@ -2,8 +2,10 @@ package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.GapBasicDTO;
 import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.GapService;
 import com.backend.gapfinder.model.services.WeeklyGapService;
+import com.backend.gapfinder.security.AccessGuard;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -12,6 +14,7 @@ import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -48,7 +51,11 @@ public class GapController {
     // POST /gaps
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public GapBasicDTO createGap(@RequestBody GapBasicDTO dto) {
+    public GapBasicDTO createGap(@RequestBody GapBasicDTO dto, @AuthenticationPrincipal UserModel me) {
+        // A user can only create gaps in their own schedule
+        if (dto.getUserId() != null) {
+            AccessGuard.requireSameUser(me, dto.getUserId());
+        }
         GapModel gapModel = modelMapper.map(dto, GapModel.class);
         GapModel created = gapService.create(gapModel);
         return modelMapper.map(created, GapBasicDTO.class);
@@ -61,8 +68,11 @@ public class GapController {
     @ResponseStatus(HttpStatus.CREATED)
     public List<GapBasicDTO> generateWeekGaps(
             @PathVariable Long userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart,
+            @AuthenticationPrincipal UserModel me) {
 
+        // A user can only recalculate their own gaps
+        AccessGuard.requireSameUser(me, userId);
         LocalDate start = weekStart != null ? weekStart : WeeklyGapService.currentOrNextWeekStart(LocalDate.now());
         List<GapModel> gaps = weeklyGapService.generateWeekGaps(userId, start);
         return modelMapper.map(gaps, new TypeToken<List<GapBasicDTO>>() {}.getType());
@@ -71,7 +81,10 @@ public class GapController {
     // Update an existing gap
     // PUT /gaps/{id}
     @PutMapping("/{id}")
-    public GapBasicDTO updateGap(@PathVariable Long id, @RequestBody GapBasicDTO dto) {
+    public GapBasicDTO updateGap(@PathVariable Long id, @RequestBody GapBasicDTO dto,
+                                 @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own gaps
+        AccessGuard.requireSameUser(me, gapService.getById(id).getUser().getId());
         GapModel gapModel = modelMapper.map(dto, GapModel.class);
         GapModel updated = gapService.update(id, gapModel);
         return modelMapper.map(updated, GapBasicDTO.class);
@@ -81,7 +94,9 @@ public class GapController {
     // DELETE /gaps/{id}
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteGap(@PathVariable Long id) {
+    public void deleteGap(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        // A user can only delete their own gaps
+        AccessGuard.requireSameUser(me, gapService.getById(id).getUser().getId());
         gapService.delete(id);
     }
 

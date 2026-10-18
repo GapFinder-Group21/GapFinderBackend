@@ -4,12 +4,15 @@ import com.backend.gapfinder.view.dto.OpenTableBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableCompleteDTO;
 import com.backend.gapfinder.view.dto.OpenTableListDTO;
 import com.backend.gapfinder.model.models.OpenTableModel;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.OpenTableService;
+import com.backend.gapfinder.security.AccessGuard;
 import java.util.List;
 
 import org.modelmapper.ModelMapper;
 import org.modelmapper.TypeToken;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -45,8 +48,13 @@ public class OpenTableController {
     // POST /open-tables
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OpenTableBasicDTO createOpenTable(@RequestBody OpenTableCompleteDTO dto) {
+    public OpenTableBasicDTO createOpenTable(@RequestBody OpenTableCompleteDTO dto,
+                                             @AuthenticationPrincipal UserModel me) {
         OpenTableModel openTableModel = modelMapper.map(dto, OpenTableModel.class);
+        // A user can only create open tables in their own name
+        if (openTableModel.getCreator() != null && openTableModel.getCreator().getId() != null) {
+            AccessGuard.requireSameUser(me, openTableModel.getCreator().getId());
+        }
         OpenTableModel created = openTableService.create(openTableModel);
         return modelMapper.map(created, OpenTableBasicDTO.class);
     }
@@ -54,7 +62,10 @@ public class OpenTableController {
     // Update an existing open table
     // PUT /open-tables/{id}
     @PutMapping("/{id}")
-    public OpenTableBasicDTO updateOpenTable(@PathVariable Long id, @RequestBody OpenTableCompleteDTO dto) {
+    public OpenTableBasicDTO updateOpenTable(@PathVariable Long id, @RequestBody OpenTableCompleteDTO dto,
+                                             @AuthenticationPrincipal UserModel me) {
+        // Only the creator can edit the open table
+        AccessGuard.requireSameUser(me, openTableService.getById(id).getCreator().getId());
         OpenTableModel openTableModel = modelMapper.map(dto, OpenTableModel.class);
         OpenTableModel updated = openTableService.update(id, openTableModel);
         return modelMapper.map(updated, OpenTableBasicDTO.class);
@@ -64,7 +75,9 @@ public class OpenTableController {
     // DELETE /open-tables/{id}
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteOpenTable(@PathVariable Long id) {
+    public void deleteOpenTable(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        // Only the creator can delete the open table
+        AccessGuard.requireSameUser(me, openTableService.getById(id).getCreator().getId());
         openTableService.delete(id);
     }
 }

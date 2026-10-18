@@ -5,14 +5,19 @@ import com.backend.gapfinder.model.models.OpenTableModel;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long> {
 
     // Finds OPEN tables in a building that overlap with a gap of the user that has not ended yet
+    // Tables created by the user or already joined by the user are not recommended
     // SMART FEATURE
     @Query("""
         SELECT DISTINCT o
@@ -20,6 +25,9 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
         WHERE o.building.id = :buildingId
           AND o.status = :status
           AND o.endTime > :now
+          AND o.creator.id <> :userId
+          AND NOT EXISTS (SELECT p FROM OpenTableParticipantModel p
+                          WHERE p.openTable = o AND p.user.id = :userId)
           AND g.user.id = :userId
           AND g.endTime > :now
           AND o.startTime < g.endTime
@@ -32,6 +40,12 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
                                                 @Param("now") LocalDateTime now);
 
 
+
+    // Gets an open table and locks its row until the transaction ends,
+    // so two users joining at the same time cannot both take the last spot
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OpenTableModel o WHERE o.id = :id")
+    Optional<OpenTableModel> findByIdForUpdate(@Param("id") Long id);
 
     // Find the open tables with any of the given statuses whose end time is before the given time
     List<OpenTableModel> findByStatusInAndEndTimeBefore(List<OpenTableStatusEnum> statuses, LocalDateTime time);

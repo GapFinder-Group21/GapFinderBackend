@@ -4,6 +4,7 @@ import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.GapModel;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.MatchRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -16,10 +17,12 @@ import java.util.List;
 public class GapService {
 
     private final GapRepository gapRepository;
+    private final MatchRepository matchRepository;
     private final UserService userService;
 
-    public GapService(GapRepository gapRepository, UserService userService) {
+    public GapService(GapRepository gapRepository, MatchRepository matchRepository, UserService userService) {
         this.gapRepository = gapRepository;
+        this.matchRepository = matchRepository;
         this.userService = userService;
     }
 
@@ -47,6 +50,9 @@ public class GapService {
 
         UserModel user = userService.getById(gap.getUser().getId());
 
+        // A user cannot be free twice at the same time
+        validateNoOverlap(user.getId(), gap, 0L);
+
         gap.setId(null);
         gap.setUser(user);
 
@@ -62,9 +68,14 @@ public class GapService {
         GapModel existente = getById(id);
         validateGapData(gap);
 
-        UserModel user = userService.getById(gap.getUser().getId());
+        // A gap used by a match keeps its times, so the meeting stays inside the gap
+        if (matchRepository.existsByProposerGapIdOrAcceptorGapId(id, id)) {
+            throw new IllegalStateException("El gap ya tiene matches, no es posible modificarlo");
+        }
 
-        existente.setUser(user);
+        // The owner of the gap does not change; the new times cannot overlap their other gaps
+        validateNoOverlap(existente.getUser().getId(), gap, id);
+
         existente.setStartTime(gap.getStartTime());
         existente.setEndTime(gap.getEndTime());
 
@@ -78,6 +89,12 @@ public class GapService {
         log.info("Inicia proceso de eliminación del gap con id = {}", id);
 
         GapModel existente = getById(id);
+
+        // The matches of a gap point to it, so a gap with matches is kept as history
+        if (matchRepository.existsByProposerGapIdOrAcceptorGapId(id, id)) {
+            throw new IllegalStateException("El gap ya tiene matches, no es posible eliminarlo");
+        }
+
         gapRepository.delete(existente);
 
         log.info("Termina proceso de eliminación del gap con id = {}", id);
@@ -95,6 +112,13 @@ public class GapService {
 
         if (!gap.getStartTime().isBefore(gap.getEndTime())) {
             throw new IllegalArgumentException("La hora de inicio debe ser antes de la hora de fin");
+        }
+    }
+
+    // The gap cannot overlap another gap of the same user (excludedId is the gap being edited, 0 if new)
+    private void validateNoOverlap(Long userId, GapModel gap, Long excludedId) {
+        if (gapRepository.existsOverlappingGapForUser(userId, gap.getStartTime(), gap.getEndTime(), excludedId)) {
+            throw new IllegalStateException("El usuario ya tiene un gap en ese horario");
         }
     }
 }

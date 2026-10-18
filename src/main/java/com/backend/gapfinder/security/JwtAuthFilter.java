@@ -1,7 +1,7 @@
 package com.backend.gapfinder.security;
 
-import com.backend.gapfinder.repositories.UserRepository;
-import com.backend.gapfinder.services.JwtService;
+import com.backend.gapfinder.model.repositories.UserRepository;
+import com.backend.gapfinder.model.services.JwtService;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

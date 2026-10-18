@@ -1,7 +1,7 @@
-package com.backend.gapfinder.builders;
+package com.backend.gapfinder.model.builders;
 
-import com.backend.gapfinder.dto.OpenTableCompleteDTO;
-import com.backend.gapfinder.dto.responses.OpenTableRecommendationResponseDTO;
+import com.backend.gapfinder.view.dto.OpenTableCompleteDTO;
+import com.backend.gapfinder.view.dto.responses.OpenTableRecommendationResponseDTO;
 
 import java.util.List;
 

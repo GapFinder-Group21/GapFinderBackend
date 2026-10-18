@@ -1,6 +1,6 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;

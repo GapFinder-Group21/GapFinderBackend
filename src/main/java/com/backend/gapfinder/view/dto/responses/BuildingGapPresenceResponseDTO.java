@@ -1,4 +1,4 @@
-package com.backend.gapfinder.dto.responses;
+package com.backend.gapfinder.view.dto.responses;
 
 public record BuildingGapPresenceResponseDTO(
     Long buildingId,

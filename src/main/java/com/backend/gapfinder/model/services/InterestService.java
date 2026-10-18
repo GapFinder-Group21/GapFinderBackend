@@ -1,8 +1,8 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.InterestModel;
-import com.backend.gapfinder.repositories.InterestRepository;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.InterestModel;
+import com.backend.gapfinder.model.repositories.InterestRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

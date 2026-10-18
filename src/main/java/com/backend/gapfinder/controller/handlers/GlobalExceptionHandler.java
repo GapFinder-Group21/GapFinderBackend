@@ -1,5 +1,6 @@
-package com.backend.gapfinder.exceptions;
+package com.backend.gapfinder.controller.handlers;
 
+import com.backend.gapfinder.model.exceptions.NotFoundException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

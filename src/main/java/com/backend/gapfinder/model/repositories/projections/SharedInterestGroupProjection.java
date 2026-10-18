@@ -1,4 +1,4 @@
-package com.backend.gapfinder.repositories.projections;
+package com.backend.gapfinder.model.repositories.projections;
 
 import java.time.LocalDateTime;
 

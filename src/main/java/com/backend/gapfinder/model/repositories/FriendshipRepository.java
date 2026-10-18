@@ -1,7 +1,7 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.enums.FriendshipStatusEnum;
-import com.backend.gapfinder.models.FriendshipModel;
+import com.backend.gapfinder.model.enums.FriendshipStatusEnum;
+import com.backend.gapfinder.model.models.FriendshipModel;
 
 import java.util.List;
 

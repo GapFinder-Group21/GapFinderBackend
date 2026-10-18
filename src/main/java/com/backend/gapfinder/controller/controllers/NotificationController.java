@@ -1,7 +1,7 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.NotificationBasicDTO;
-import com.backend.gapfinder.services.NotificationService;
+import com.backend.gapfinder.view.dto.NotificationBasicDTO;
+import com.backend.gapfinder.model.services.NotificationService;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;

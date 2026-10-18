@@ -1,4 +1,4 @@
-package com.backend.gapfinder.enums;
+package com.backend.gapfinder.model.enums;
 
 // Steps of the open table creation wizard where the user can abandon the flow
 public enum OpenTableCreationStepEnum {

@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
-import com.backend.gapfinder.enums.MatchStatusEnum;
+import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import lombok.Data;
 import java.time.LocalDateTime;
 

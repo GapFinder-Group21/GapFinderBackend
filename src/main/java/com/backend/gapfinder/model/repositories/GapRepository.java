@@ -1,8 +1,8 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.models.GapModel;
-import com.backend.gapfinder.repositories.projections.SharedInterestGroupProjection;
-import com.backend.gapfinder.repositories.projections.UnmatchedFreeTimeProjection;
+import com.backend.gapfinder.model.models.GapModel;
+import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
+import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +15,7 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
     // Finds potential gaps that overlap in time, belong to other users, and are NOT already in an ACCEPTED or COMPLETED match
     @Query("SELECT g FROM GapModel g WHERE g.user.id <> :userId " +
            "AND g.startTime < :endTime AND g.endTime > :startTime " +
-           "AND NOT EXISTS (SELECT m FROM MatchModel m WHERE (m.proposerGap = g OR m.acceptorGap = g) AND m.status = com.backend.gapfinder.enums.MatchStatusEnum.ACCEPTED)")
+           "AND NOT EXISTS (SELECT m FROM MatchModel m WHERE (m.proposerGap = g OR m.acceptorGap = g) AND m.status = com.backend.gapfinder.model.enums.MatchStatusEnum.ACCEPTED)")
     List<GapModel> findOverlappingGapsExcludingUser(
             @Param("userId") Long userId,
             @Param("startTime") LocalDateTime startTime,

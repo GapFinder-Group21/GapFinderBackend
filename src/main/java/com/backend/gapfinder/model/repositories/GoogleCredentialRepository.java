@@ -1,8 +1,8 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.backend.gapfinder.models.GoogleCredentialModel;
+import com.backend.gapfinder.model.models.GoogleCredentialModel;
 
 import java.util.Optional;
 

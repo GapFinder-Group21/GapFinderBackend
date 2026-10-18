@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
-import com.backend.gapfinder.enums.NotificationTypeEnum;
+import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

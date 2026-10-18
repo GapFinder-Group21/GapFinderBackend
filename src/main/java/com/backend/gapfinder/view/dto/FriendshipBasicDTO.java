@@ -1,8 +1,8 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
 import java.time.LocalDateTime;
 
-import com.backend.gapfinder.enums.FriendshipStatusEnum;
+import com.backend.gapfinder.model.enums.FriendshipStatusEnum;
 
 import lombok.Data;
 

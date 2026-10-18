@@ -1,4 +1,4 @@
-package com.backend.gapfinder.enums;
+package com.backend.gapfinder.model.enums;
 
 public enum NotificationTypeEnum {
 

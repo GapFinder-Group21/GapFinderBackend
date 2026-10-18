@@ -1,8 +1,8 @@
-package com.backend.gapfinder.repositories;
+package com.backend.gapfinder.model.repositories;
 
-import com.backend.gapfinder.models.UserLocationLogModel;
-import com.backend.gapfinder.repositories.projections.BuildingGapPresenceProjection;
-import com.backend.gapfinder.repositories.projections.FavoriteBuildingProjection;
+import com.backend.gapfinder.model.models.UserLocationLogModel;
+import com.backend.gapfinder.model.repositories.projections.BuildingGapPresenceProjection;
+import com.backend.gapfinder.model.repositories.projections.FavoriteBuildingProjection;
 
 import java.util.List;
 import java.util.Optional;

@@ -1,11 +1,11 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.requests.LoginRequest;
-import com.backend.gapfinder.dto.requests.RefreshRequest;
-import com.backend.gapfinder.dto.requests.RegisterRequest;
-import com.backend.gapfinder.dto.responses.AuthResponse;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.services.AuthService;
+import com.backend.gapfinder.view.dto.requests.LoginRequest;
+import com.backend.gapfinder.view.dto.requests.RefreshRequest;
+import com.backend.gapfinder.view.dto.requests.RegisterRequest;
+import com.backend.gapfinder.view.dto.responses.AuthResponse;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.services.AuthService;
 
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

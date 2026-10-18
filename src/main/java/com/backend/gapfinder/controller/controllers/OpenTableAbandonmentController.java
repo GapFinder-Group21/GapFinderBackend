@@ -1,11 +1,11 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.OpenTableAbandonmentBasicDTO;
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.enums.OpenTableCreationStepEnum;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.OpenTableAbandonmentModel;
-import com.backend.gapfinder.services.OpenTableAbandonmentService;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentBasicDTO;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.model.enums.OpenTableCreationStepEnum;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.OpenTableAbandonmentModel;
+import com.backend.gapfinder.model.services.OpenTableAbandonmentService;
 
 import java.time.LocalDateTime;
 import java.util.List;

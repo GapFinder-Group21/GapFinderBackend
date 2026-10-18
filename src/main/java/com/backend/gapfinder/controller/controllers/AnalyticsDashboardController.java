@@ -1,7 +1,7 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.responses.AnalyticsDashboardResponseDTO;
-import com.backend.gapfinder.facades.AnalyticsFacade;
+import com.backend.gapfinder.view.dto.responses.AnalyticsDashboardResponseDTO;
+import com.backend.gapfinder.model.facades.AnalyticsFacade;
 
 import java.time.LocalDateTime;
 

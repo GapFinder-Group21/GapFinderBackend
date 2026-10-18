@@ -1,11 +1,11 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
-import com.backend.gapfinder.models.ClassBlockModel;
-import com.backend.gapfinder.services.WeeklyGapService.TimeSlot;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.services.WeeklyGapService.TimeSlot;
 
 import org.junit.jupiter.api.Test;
 

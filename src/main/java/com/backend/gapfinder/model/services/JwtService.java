@@ -1,4 +1,4 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

@@ -1,11 +1,11 @@
-package com.backend.gapfinder.facades;
+package com.backend.gapfinder.model.facades;
 
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.dto.SharedInterestGroupStatsBasicDTO;
-import com.backend.gapfinder.dto.UnmatchedFreeTimeStatsBasicDTO;
-import com.backend.gapfinder.dto.responses.AnalyticsDashboardResponseDTO;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.services.AnalyticsService;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.responses.AnalyticsDashboardResponseDTO;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.services.AnalyticsService;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

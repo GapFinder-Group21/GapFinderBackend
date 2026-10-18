@@ -1,6 +1,6 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
-import com.backend.gapfinder.enums.NotificationTypeEnum;
+import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 
 import jakarta.persistence.*;
 import lombok.Getter;

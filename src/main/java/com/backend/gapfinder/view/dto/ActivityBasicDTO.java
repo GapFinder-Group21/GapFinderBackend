@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
-import com.backend.gapfinder.enums.EffortTypeEnum;
+import com.backend.gapfinder.model.enums.EffortTypeEnum;
 import lombok.Data;
 
 @Data

@@ -1,8 +1,8 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.ActivityBasicDTO;
-import com.backend.gapfinder.models.ActivityModel;
-import com.backend.gapfinder.services.ActivityService;
+import com.backend.gapfinder.view.dto.ActivityBasicDTO;
+import com.backend.gapfinder.model.models.ActivityModel;
+import com.backend.gapfinder.model.services.ActivityService;
 
 import java.util.List;
 

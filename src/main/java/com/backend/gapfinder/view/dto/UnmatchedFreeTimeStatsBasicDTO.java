@@ -1,4 +1,4 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
 // DTO with the unmatched free time statistics of a (career, semester) group
 public record UnmatchedFreeTimeStatsBasicDTO(

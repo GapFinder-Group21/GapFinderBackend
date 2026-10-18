@@ -1,8 +1,8 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.ClassBlockBasicDTO;
-import com.backend.gapfinder.models.ClassBlockModel;
-import com.backend.gapfinder.services.ClassBlockService;
+import com.backend.gapfinder.view.dto.ClassBlockBasicDTO;
+import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.services.ClassBlockService;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.responses.OpenTableRecommendationResponseDTO;
-import com.backend.gapfinder.services.RecommendationService;
+import com.backend.gapfinder.view.dto.responses.OpenTableRecommendationResponseDTO;
+import com.backend.gapfinder.model.services.RecommendationService;
 
 import org.springframework.web.bind.annotation.*;
 

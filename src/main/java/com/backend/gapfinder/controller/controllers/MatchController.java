@@ -1,10 +1,10 @@
-package com.backend.gapfinder.controllers;
+package com.backend.gapfinder.controller.controllers;
 
-import com.backend.gapfinder.dto.MatchBasicDTO;
-import com.backend.gapfinder.dto.MatchCompleteDTO;
-import com.backend.gapfinder.dto.responses.MatchCandidateResponseDTO;
-import com.backend.gapfinder.models.MatchModel;
-import com.backend.gapfinder.services.MatchService;
+import com.backend.gapfinder.view.dto.MatchBasicDTO;
+import com.backend.gapfinder.view.dto.MatchCompleteDTO;
+import com.backend.gapfinder.view.dto.responses.MatchCandidateResponseDTO;
+import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.services.MatchService;
 
 import java.util.List;
 

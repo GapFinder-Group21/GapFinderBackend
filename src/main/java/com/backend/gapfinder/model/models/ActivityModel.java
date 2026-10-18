@@ -1,6 +1,6 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
-import com.backend.gapfinder.enums.EffortTypeEnum;
+import com.backend.gapfinder.model.enums.EffortTypeEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

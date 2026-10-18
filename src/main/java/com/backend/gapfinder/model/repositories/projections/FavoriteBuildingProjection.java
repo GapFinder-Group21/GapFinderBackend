@@ -1,4 +1,4 @@
-package com.backend.gapfinder.repositories.projections;
+package com.backend.gapfinder.model.repositories.projections;
 
 // Projection for mapped building metrics with total free time minutes
 public interface FavoriteBuildingProjection {

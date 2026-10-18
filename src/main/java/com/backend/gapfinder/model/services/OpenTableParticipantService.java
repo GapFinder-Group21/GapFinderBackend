@@ -1,11 +1,11 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.enums.OpenTableStatusEnum;
-import com.backend.gapfinder.exceptions.NotFoundException;
-import com.backend.gapfinder.models.OpenTableModel;
-import com.backend.gapfinder.models.OpenTableParticipantModel;
-import com.backend.gapfinder.models.UserModel;
-import com.backend.gapfinder.repositories.OpenTableParticipantRepository;
+import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
+import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.OpenTableModel;
+import com.backend.gapfinder.model.models.OpenTableParticipantModel;
+import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.OpenTableParticipantRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

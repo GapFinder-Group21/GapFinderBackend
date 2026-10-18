@@ -1,4 +1,4 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
 import jakarta.persistence.*;
 import lombok.Data;

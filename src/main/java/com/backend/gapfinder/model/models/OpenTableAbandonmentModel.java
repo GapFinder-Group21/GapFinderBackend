@@ -1,8 +1,8 @@
-package com.backend.gapfinder.models;
+package com.backend.gapfinder.model.models;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import com.backend.gapfinder.enums.OpenTableCreationStepEnum;
+import com.backend.gapfinder.model.enums.OpenTableCreationStepEnum;
 import lombok.Data;
 
 // Entity representing an abandoned open table creation process

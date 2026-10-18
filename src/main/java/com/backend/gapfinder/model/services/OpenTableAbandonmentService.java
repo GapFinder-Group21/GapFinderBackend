@@ -1,9 +1,9 @@
-package com.backend.gapfinder.services;
+package com.backend.gapfinder.model.services;
 
-import com.backend.gapfinder.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.enums.OpenTableCreationStepEnum;
-import com.backend.gapfinder.models.OpenTableAbandonmentModel;
-import com.backend.gapfinder.repositories.OpenTableAbandonmentRepository;
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.model.enums.OpenTableCreationStepEnum;
+import com.backend.gapfinder.model.models.OpenTableAbandonmentModel;
+import com.backend.gapfinder.model.repositories.OpenTableAbandonmentRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

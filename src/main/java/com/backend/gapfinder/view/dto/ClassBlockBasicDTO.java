@@ -1,7 +1,7 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
-import com.backend.gapfinder.enums.DayOfWeekEnum;
-import com.backend.gapfinder.models.ClassBlockModel;
+import com.backend.gapfinder.model.enums.DayOfWeekEnum;
+import com.backend.gapfinder.model.models.ClassBlockModel;
 
 import lombok.Data;
 

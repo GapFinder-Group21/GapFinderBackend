@@ -1,6 +1,6 @@
-package com.backend.gapfinder.dto;
+package com.backend.gapfinder.view.dto;
 
-import com.backend.gapfinder.enums.OpenTableCreationStepEnum;
+import com.backend.gapfinder.model.enums.OpenTableCreationStepEnum;
 
 // DTO with the abandonment statistics of a step of the open table creation wizard
 public record OpenTableAbandonmentStatsBasicDTO(

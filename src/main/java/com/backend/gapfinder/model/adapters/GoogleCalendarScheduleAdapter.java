@@ -1,9 +1,9 @@
-package com.backend.gapfinder.adapters;
+package com.backend.gapfinder.model.adapters;
 
-import com.backend.gapfinder.exceptions.ScheduleSourceUnavailableException;
-import com.backend.gapfinder.mapper.GoogleEventMapper;
-import com.backend.gapfinder.models.ClassBlockModel;
-import com.backend.gapfinder.services.GoogleCalendarService;
+import com.backend.gapfinder.model.exceptions.ScheduleSourceUnavailableException;
+import com.backend.gapfinder.model.mapper.GoogleEventMapper;
+import com.backend.gapfinder.model.models.ClassBlockModel;
+import com.backend.gapfinder.model.services.GoogleCalendarService;
 import com.google.api.services.calendar.model.Event;
 
 import lombok.extern.slf4j.Slf4j;

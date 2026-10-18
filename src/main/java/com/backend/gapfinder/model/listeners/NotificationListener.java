@@ -1,9 +1,9 @@
-package com.backend.gapfinder.listeners;
+package com.backend.gapfinder.model.listeners;
 
-import com.backend.gapfinder.events.FriendshipEvent;
-import com.backend.gapfinder.events.MatchEvent;
-import com.backend.gapfinder.events.OpenTableEvent;
-import com.backend.gapfinder.services.NotificationService;
+import com.backend.gapfinder.model.events.FriendshipEvent;
+import com.backend.gapfinder.model.events.MatchEvent;
+import com.backend.gapfinder.model.events.OpenTableEvent;
+import com.backend.gapfinder.model.services.NotificationService;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;

@@ -4,6 +4,7 @@ import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.view.dto.responses.AnalyticsDashboardResponseDTO;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.services.AnalyticsService;
@@ -47,6 +48,7 @@ public class AnalyticsFacade {
         dashboard.setBuildingsByGapPresence(analyticsService.getBuildingsByGapPresence());
         dashboard.setUnmatchedFreeTimeByCareerSemester(getUnmatchedFreeTimeOrEmpty(start, limit));
         dashboard.setInterestsByLargestFreeGroup(getInterestsByLargestFreeGroupOrEmpty(start, limit));
+        dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
@@ -89,6 +91,17 @@ public class AnalyticsFacade {
             return analyticsService.getInterestsByLargestFreeGroup(since, null, limit);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay estudiantes con intereses y gaps desde {}", since);
+            return List.of();
+        }
+    }
+
+    // BQ 8: returns an empty list instead of failing when there are no activities
+    // No limit: the dashboard needs every activity to say how many are never chosen
+    private List<UnusedActivityStatsDTO> getUnusedActivitiesOrEmpty(LocalDateTime since) {
+        try {
+            return analyticsService.getUnusedActivities(since, null);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay actividades registradas desde {}", since);
             return List.of();
         }
     }

@@ -5,6 +5,7 @@ import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 
 import lombok.Data;
 
@@ -38,4 +39,7 @@ public class AnalyticsDashboardResponseDTO {
 
     // BQ 13: interests by the largest group of students free at the same time, largest first (empty if there is no data)
     private List<SharedInterestGroupStatsBasicDTO> interestsByLargestFreeGroup;
+
+    // BQ 8: all the activities from the least to the most chosen in open tables (empty if there are no activities)
+    private List<UnusedActivityStatsDTO> unusedActivities;
 }

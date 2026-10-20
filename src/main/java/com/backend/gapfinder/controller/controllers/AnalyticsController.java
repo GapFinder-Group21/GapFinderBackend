@@ -2,10 +2,13 @@ package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.services.AnalyticsService;
+import com.backend.gapfinder.security.AccessGuard;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
@@ -15,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -126,6 +130,33 @@ public class AnalyticsController {
 
     // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
 
+    // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
+
+    // Which activity does the student choose most often when creating open tables?
+    // Get the activities most preferred by all the students and the share of students who always repeat the same one
+    // GET /analytics/preferred-activity?since=2026-09-01T00:00:00
+    @GetMapping("/preferred-activity")
+    public PreferredActivityStatsDTO getPreferredActivity(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getPreferredActivity(null, since);
+    }
+
+    // Same answer plus the activity the user chooses most often (null if they created no open tables)
+    // The app preselects it when the user creates an open table
+    // GET /analytics/preferred-activity/user/{userId}?since=2026-09-01T00:00:00
+    @GetMapping("/preferred-activity/user/{userId}")
+    public PreferredActivityStatsDTO getPreferredActivityForUser(
+            @PathVariable Long userId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @AuthenticationPrincipal UserModel me) {
+
+        // The preferred activity of a user is personal: only the user can ask for it
+        AccessGuard.requireSameUser(me, userId);
+        return analyticsService.getPreferredActivity(userId, since);
+    }
+
+    // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
     // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
 
     // Which activities are never or rarely chosen when creating open tables?

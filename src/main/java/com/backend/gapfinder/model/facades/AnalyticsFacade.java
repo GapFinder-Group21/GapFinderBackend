@@ -1,6 +1,7 @@
 package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -43,6 +44,7 @@ public class AnalyticsFacade {
         AnalyticsDashboardResponseDTO dashboard = new AnalyticsDashboardResponseDTO();
         dashboard.setMostAbandonedStep(getMostAbandonedStepOrNull(start));
         dashboard.setAppOpenDelay(getAppOpenDelayOrNull(start));
+        dashboard.setPreferredActivity(getPreferredActivityOrNull(start));
         dashboard.setGapCoverageByDuration(analyticsService.getMatchCoverageByGapDuration());
         dashboard.setConnectionMethods(analyticsService.compareConnectionMethods());
         dashboard.setBuildingsByGapPresence(analyticsService.getBuildingsByGapPresence());
@@ -70,6 +72,16 @@ public class AnalyticsFacade {
             return analyticsService.getAppOpenDelay(null, since);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay gaps terminados registrados desde {}", since);
+            return null;
+        }
+    }
+
+    // BQ 6: returns null instead of failing when there are no open tables with activity since the given date
+    private PreferredActivityStatsDTO getPreferredActivityOrNull(LocalDateTime since) {
+        try {
+            return analyticsService.getPreferredActivity(null, since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay open tables con actividad creadas desde {}", since);
             return null;
         }
     }

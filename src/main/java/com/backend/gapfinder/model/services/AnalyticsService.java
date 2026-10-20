@@ -5,6 +5,9 @@ import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRangeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
+import com.backend.gapfinder.view.dto.StudentLocationUpdateRateBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -19,6 +22,7 @@ import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
+import com.backend.gapfinder.model.repositories.projections.LocationUpdateSummaryProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 import com.backend.gapfinder.model.repositories.projections.UnusedActivityProjection;
@@ -59,6 +63,67 @@ public class AnalyticsService {
         this.matchRepository = matchRepository;
         this.openTableRepository = openTableRepository;
     }
+
+    // ==================== BQ 2 TYPE 1 GRUPAL ====================
+    // How many location updates per hour does the backend receive from each student while they are inside a campus building?
+
+    // Ranges of updates per student-hour in natural order
+    private static final List<String> LOCATION_UPDATE_RANGES = List.of("1", "2-5", "6-15", "16-30", "31+");
+
+    // Location updates per hour received from the students while inside a campus building: summary of all the
+    // student-hours, their distribution per range and the rate of each student (highest first)
+    // since: optional, whole history if null. limit: optional, all the students if null
+    @Transactional(readOnly = true)
+    public LocationUpdateRateStatsDTO getLocationUpdatesPerHour(LocalDateTime since, Integer limit) {
+        LocalDateTime start = since != null ? since : HISTORY_START;
+
+        log.info("Inicia proceso de consultar las actualizaciones de ubicación por hora desde {}", start);
+
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException("El límite debe ser mayor a 0");
+        }
+
+        LocationUpdateSummaryProjection summary = locationLogRepository.findLocationUpdateSummary(start);
+        long studentHours = summary.getStudentHours() != null ? summary.getStudentHours() : 0L;
+        if (studentHours == 0) {
+            throw new NotFoundException("No hay actualizaciones de ubicación registradas desde la fecha indicada");
+        }
+
+        // Student-hours per range, with 0 for the ranges that do not appear in the query
+        Map<String, Long> hoursByRange = new LinkedHashMap<>();
+        LOCATION_UPDATE_RANGES.forEach(range -> hoursByRange.put(range, 0L));
+        locationLogRepository.countStudentHoursByUpdatesRange(start)
+                .forEach(row -> hoursByRange.put(row.getUpdatesRange(), row.getStudentHours()));
+
+        List<LocationUpdateRangeStatsBasicDTO> distribution = hoursByRange.entrySet().stream()
+                .map(entry -> new LocationUpdateRangeStatsBasicDTO(
+                        entry.getKey(), entry.getValue(), (double) entry.getValue() / studentHours * 100))
+                .toList();
+
+        // Already sorted by the query from the highest to the lowest average
+        List<StudentLocationUpdateRateBasicDTO> students = locationLogRepository
+                .findLocationUpdateRateByStudent(start).stream()
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .map(row -> new StudentLocationUpdateRateBasicDTO(
+                        row.getUserId(),
+                        row.getUserName(),
+                        row.getAveragePerHour(),
+                        row.getMaxPerHour(),
+                        row.getHoursInside()))
+                .toList();
+
+        log.info("Termina proceso de consultar las actualizaciones de ubicación por hora desde {}", start);
+        return new LocationUpdateRateStatsDTO(
+                summary.getAveragePerHour(),
+                summary.getMedianPerHour(),
+                summary.getMaxPerHour(),
+                studentHours,
+                summary.getStudents(),
+                distribution,
+                students);
+    }
+
+    // ================== END BQ 2 TYPE 1 GRUPAL ==================
 
     // ==================== BQ 3 TYPE 2 GRUPAL ====================
     // At which step do students most often leave the Open Table creating process?

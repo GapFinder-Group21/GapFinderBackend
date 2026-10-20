@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -26,6 +27,21 @@ public class AnalyticsController {
     public AnalyticsController(AnalyticsService analyticsService) {
         this.analyticsService = analyticsService;
     }
+
+    // ==================== BQ 2 GRUPAL TYPE 1 ====================
+
+    // How many location updates per hour does the backend receive from each student while they are inside a campus building?
+    // Get the updates per student-hour (average, median, max and distribution) and the rate of each student
+    // GET /analytics/location-updates/per-hour?since=2026-09-01T00:00:00&limit=10
+    @GetMapping("/location-updates/per-hour")
+    public LocationUpdateRateStatsDTO getLocationUpdatesPerHour(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getLocationUpdatesPerHour(since, limit);
+    }
+
+    // ================== END BQ 2 GRUPAL TYPE 1 ==================
 
     // BQ 3: At which step do students most often leave the Open Table creating process?
     // Get the creation step with the highest abandonment rate since the given date

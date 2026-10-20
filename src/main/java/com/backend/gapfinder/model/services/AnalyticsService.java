@@ -6,6 +6,9 @@ import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityRankingBasicDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
@@ -17,6 +20,8 @@ import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
+import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
+import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 
@@ -388,4 +393,66 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
+
+    // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
+    // Joel: Which activity does the student choose most often when creating open tables,
+    // so the app can preselect it the next time they create one?
+
+    // Number of activities in the ranking of the dashboard
+    private static final int PREFERRED_ACTIVITY_TOP = 10;
+
+    // Activities most preferred by all the students and the share of students who always repeat the same one
+    // userId: optional, null for the dashboard. With a user it also returns their own preferred activity (null if they
+    // created no open tables in the period), used by the app to preselect it
+    // since: optional, whole history if null
+    @Transactional(readOnly = true)
+    public PreferredActivityStatsDTO getPreferredActivity(Long userId, LocalDateTime since) {
+        LocalDateTime start = since != null ? since : HISTORY_START;
+
+        log.info("Inicia proceso de consultar la actividad preferida al crear open tables desde {}", start);
+
+        if (userId != null) {
+            userService.getById(userId);
+        }
+
+        PreferredActivityTotalsProjection totals = openTableRepository.findPreferredActivityTotals(start);
+        long totalTables = totals.getTables() != null ? totals.getTables() : 0L;
+        if (totalTables == 0) {
+            throw new NotFoundException("No hay open tables con actividad creadas desde la fecha indicada");
+        }
+
+        // Rows come most preferred first (tie: the most recently used activity)
+        List<PreferredActivityRankingBasicDTO> ranking = openTableRepository.countOpenTablesByActivity(start).stream()
+                .limit(PREFERRED_ACTIVITY_TOP)
+                .map(row -> new PreferredActivityRankingBasicDTO(
+                        row.getActivityId(), row.getActivityName(), row.getTables(), row.getStudents(),
+                        (double) row.getTables() / totalTables * 100))
+                .toList();
+
+        // A student can only repeat an activity with two or more open tables
+        long withSeveral = totals.getStudentsWithSeveralTables() != null ? totals.getStudentsWithSeveralTables() : 0L;
+        long repeating = totals.getStudentsRepeatingSameActivity() != null
+                ? totals.getStudentsRepeatingSameActivity() : 0L;
+        Double repeatPercentage = withSeveral > 0 ? (double) repeating / withSeveral * 100 : null;
+
+        // The first row of the student is their preferred activity: most chosen, tie the most recently used
+        UserPreferredActivityBasicDTO userPreferred = null;
+        if (userId != null) {
+            userPreferred = openTableRepository.findActivityUsageByStudent(userId, start).stream()
+                    .findFirst()
+                    .map(this::toUserPreferredActivity)
+                    .orElse(null);
+        }
+
+        log.info("Termina proceso de consultar la actividad preferida al crear open tables desde {}", start);
+        return new PreferredActivityStatsDTO(ranking, totalTables, totals.getStudents(), withSeveral, repeating,
+                repeatPercentage, userPreferred);
+    }
+
+    // Builds the preferred activity of a student from the query row
+    private UserPreferredActivityBasicDTO toUserPreferredActivity(StudentActivityUsageProjection row) {
+        return new UserPreferredActivityBasicDTO(row.getActivityId(), row.getActivityName(), row.getTimesChosen());
+    }
+
+    // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
 }

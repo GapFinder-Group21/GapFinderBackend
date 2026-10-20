@@ -1,6 +1,7 @@
 package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -32,7 +33,7 @@ public class AnalyticsFacade {
     }
 
     // Collects the answers of all the business questions in a single response
-    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ 12 and BQ 13)
+    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ 2, BQ 12 and BQ 13)
     // Not @Transactional on purpose: each BQ runs in its own transaction, so a "no data" error in one of them
     // does not mark a shared transaction as rollback-only and break the whole dashboard
     public AnalyticsDashboardResponseDTO getDashboard(LocalDateTime since, Integer limit) {
@@ -41,6 +42,7 @@ public class AnalyticsFacade {
         log.info("Inicia proceso de consultar el dashboard de analíticas desde {}", start);
 
         AnalyticsDashboardResponseDTO dashboard = new AnalyticsDashboardResponseDTO();
+        dashboard.setLocationUpdatesPerHour(getLocationUpdatesPerHourOrNull(start, limit));
         dashboard.setMostAbandonedStep(getMostAbandonedStepOrNull(start));
         dashboard.setAppOpenDelay(getAppOpenDelayOrNull(start));
         dashboard.setGapCoverageByDuration(analyticsService.getMatchCoverageByGapDuration());
@@ -52,6 +54,16 @@ public class AnalyticsFacade {
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
+    }
+
+    // BQ 2: returns null instead of failing when there are no location updates since the given date
+    private LocationUpdateRateStatsDTO getLocationUpdatesPerHourOrNull(LocalDateTime since, Integer limit) {
+        try {
+            return analyticsService.getLocationUpdatesPerHour(since, limit);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay actualizaciones de ubicación registradas desde {}", since);
+            return null;
+        }
     }
 
     // BQ 3: returns null instead of failing when there are no abandonments since the given date

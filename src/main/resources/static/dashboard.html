@@ -18,6 +18,7 @@
     --muted: #6b7280;
     --accent: #2563eb;
     --accent-soft: #dbe5fb;
+    --accent-mid: #7ea3f2;
     --gray: #b8c0cc;
     --error-bg: #fdecec;
     --error-text: #9b1c1c;
@@ -149,7 +150,7 @@
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
     <div class="filter-group">
-      <span>Period (BQ 3, 4, 6, 12 and 13)</span>
+      <span>Period (BQ 3, 4, 6, 8, 12 and 13)</span>
       <div class="period" id="period">
         <button data-days="7">Last 7 days</button>
         <button data-days="30" class="active">Last 30 days</button>
@@ -206,6 +207,11 @@
         <p class="question">Which connection method leads to more accepted meetups: open tables or matches?</p>
         <div id="bq7"></div>
       </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 8</div>
+        <p class="question">Which activities are never or rarely chosen when creating open tables?</p>
+        <div id="bq8"></div>
+      </div>
     </div>
   </section>
 
@@ -253,6 +259,7 @@
   const css = getComputedStyle(document.documentElement);
   const ACCENT = css.getPropertyValue('--accent').trim();
   const ACCENT_SOFT = css.getPropertyValue('--accent-soft').trim();
+  const ACCENT_MID = css.getPropertyValue('--accent-mid').trim();
   const GRAY = css.getPropertyValue('--gray').trim();
   const MUTED = css.getPropertyValue('--muted').trim();
 
@@ -583,6 +590,62 @@
       Open tables: ${data.completedOpenTables} of ${data.totalOpenTables} completed</p>`);
   }
 
+  // BQ 8: headline (how many activities are never chosen and which) and bars from the least to the most chosen
+  function renderBq8(rows) {
+    const box = document.getElementById('bq8');
+    if (!rows || rows.length === 0) {
+      clearChart('bq8');
+      return showEmpty(box);
+    }
+
+    const never = rows.filter(r => r.classification === 'NEVER');
+    const rarely = rows.filter(r => r.classification === 'RARELY');
+    const names = never.map(r => esc(r.activityName)).join(', ');
+    const colorOf = r => r.classification === 'NEVER' ? ACCENT : r.classification === 'RARELY' ? ACCENT_MID : GRAY;
+
+    box.innerHTML = `
+      <div class="hero">${never.length} of ${rows.length}</div>
+      <div class="hero-sub">activities were never chosen${never.length ? `: ${names}` : ''} · ${rarely.length} rarely chosen</div>
+      <div id="bq8Chart"></div>`;
+
+    // The backend already sends them sorted, least chosen first
+    drawChart('bq8', newCanvas(document.getElementById('bq8Chart'), barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => `${r.activityName} (${r.interestName})`),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map(colorOf),
+          borderRadius: 4,
+          maxBarThickness: 28,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 50 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of open tables: ${pct(r.percentage)}`, `Open tables: ${r.openTables}`,
+                        `Status: ${r.classification}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', '<p class="note">Dark blue: never chosen · Light blue: rarely chosen (under 5% of the open tables) · Gray: chosen enough.</p>');
+  }
+
   // BQ 11: horizontal bars ranked by number of students per building
   function renderBq11(rows) {
     const box = document.getElementById('bq11');
@@ -817,6 +880,7 @@
       renderBq5(data.gapCoverageByDuration);
       renderBq6(data.preferredActivity);
       renderBq7(data.connectionMethods);
+      renderBq8(data.unusedActivities);
       renderBq11(data.buildingsByGapPresence);
       renderBq12(data.unmatchedFreeTimeByCareerSemester);
       renderBq13(data.interestsByLargestFreeGroup);

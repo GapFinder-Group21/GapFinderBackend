@@ -11,9 +11,11 @@ import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
+import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
@@ -24,6 +26,7 @@ import com.backend.gapfinder.model.repositories.projections.PreferredActivityTot
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
+import com.backend.gapfinder.model.repositories.projections.UnusedActivityProjection;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -46,11 +49,13 @@ public class AnalyticsService {
     private final OpenTableRepository openTableRepository;
     private final AppSessionRepository appSessionRepository;
     private final UserService userService;
+    private final ActivityRepository activityRepository;
 
     public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository,
                             UserLocationLogRepository locationLogRepository, MatchRepository matchRepository,
                             OpenTableRepository openTableRepository, AppSessionRepository appSessionRepository,
-                            UserService userService) {
+                            UserService userService, ActivityRepository activityRepository) {
+        this.activityRepository = activityRepository;
         this.appSessionRepository = appSessionRepository;
         this.userService = userService;
         this.abandonmentService = abandonmentService;
@@ -455,4 +460,70 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
+    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
+    // Sofia Morato: Which activities are never or rarely chosen when creating open tables?
+
+    // An activity chosen in less than this percentage of the open tables of the period is RARELY chosen
+    // 5 % is a simple, easy to explain cut: an activity that gets less than 1 of every 20 open tables is clearly ignored
+    private static final double RARELY_CHOSEN_THRESHOLD_PERCENT = 5.0;
+
+    // Days used as the default start date, the same as the dashboard
+    private static final int DEFAULT_ACTIVITY_DAYS_BACK = 30;
+
+    // Lists ALL the activities from the least to the most chosen, classified as NEVER, RARELY or OK
+    // since: optional, last 30 days if null. limit: optional, all activities if null
+    @Transactional(readOnly = true)
+    public List<UnusedActivityStatsDTO> getUnusedActivities(LocalDateTime since, Integer limit) {
+        LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_ACTIVITY_DAYS_BACK);
+
+        log.info("Inicia proceso de consultar las actividades nunca o raramente elegidas desde {}", start);
+
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException("El límite debe ser mayor a 0");
+        }
+
+        List<UnusedActivityProjection> rows = activityRepository.findActivityUsageSince(start);
+        if (rows.isEmpty()) {
+            throw new NotFoundException("No hay actividades registradas");
+        }
+
+        // The percentage is over the open tables that chose an activity, not over all the open tables
+        long totalTables = rows.stream()
+                .mapToLong(row -> row.getOpenTables() != null ? row.getOpenTables() : 0L)
+                .sum();
+
+        // The query already sorts them from the least to the most chosen
+        List<UnusedActivityStatsDTO> stats = rows.stream()
+                .map(row -> toUnusedActivityStats(row, totalTables))
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .toList();
+
+        log.info("Termina proceso de consultar las actividades nunca o raramente elegidas desde {}", start);
+        return stats;
+    }
+
+    // Builds the statistics of an activity with its share of the open tables and its classification
+    private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables) {
+        long tables = row.getOpenTables() != null ? row.getOpenTables() : 0L;
+        double percentage = totalTables == 0 ? 0.0 : (double) tables / totalTables * 100;
+
+        String classification;
+        if (tables == 0) {
+            classification = "NEVER";
+        } else if (percentage < RARELY_CHOSEN_THRESHOLD_PERCENT) {
+            classification = "RARELY";
+        } else {
+            classification = "OK";
+        }
+
+        return new UnusedActivityStatsDTO(
+                row.getActivityId(),
+                row.getActivityName(),
+                row.getInterestName(),
+                tables,
+                percentage,
+                classification);
+    }
+
+    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
 }

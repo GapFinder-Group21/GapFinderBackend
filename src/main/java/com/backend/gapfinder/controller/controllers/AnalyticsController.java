@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.services.AnalyticsService;
 import com.backend.gapfinder.security.AccessGuard;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
@@ -156,4 +157,18 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
+    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
+
+    // Which activities are never or rarely chosen when creating open tables?
+    // Get all the activities from the least to the most chosen, classified as NEVER, RARELY or OK
+    // GET /analytics/activities/unused?since=2026-09-01T00:00:00&limit=10
+    @GetMapping("/activities/unused")
+    public List<UnusedActivityStatsDTO> getUnusedActivities(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getUnusedActivities(since, limit);
+    }
+
+    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
 }

@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -171,4 +172,19 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 14 GRUPAL ====================
+
+    // Which interests have the most students but the fewest open tables created for their activities?
+    // Returns all interests ranked by unmet demand (most students, fewest open tables), highest first.
+    // GET /analytics/interests/demand-gap?since=2026-09-01T00:00:00&limit=10
+    @GetMapping("/interests/demand-gap")
+    public List<InterestDemandGapBasicDTO> getInterestDemandGap(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getInterestsWithMostStudentsAndFewestTables(since, limit);
+    }
+
+    // ================== END BQ 14 GRUPAL ==================
 }

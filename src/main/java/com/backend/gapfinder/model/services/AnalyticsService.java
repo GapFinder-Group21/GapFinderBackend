@@ -5,6 +5,7 @@ import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityRankingBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
@@ -18,10 +19,12 @@ import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.InterestRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
+import com.backend.gapfinder.model.repositories.projections.InterestDemandGapProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
@@ -50,11 +53,13 @@ public class AnalyticsService {
     private final AppSessionRepository appSessionRepository;
     private final UserService userService;
     private final ActivityRepository activityRepository;
+    private final InterestRepository interestRepository;
 
     public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository,
                             UserLocationLogRepository locationLogRepository, MatchRepository matchRepository,
                             OpenTableRepository openTableRepository, AppSessionRepository appSessionRepository,
-                            UserService userService, ActivityRepository activityRepository) {
+                            UserService userService, ActivityRepository activityRepository,
+                            InterestRepository interestRepository) {
         this.activityRepository = activityRepository;
         this.appSessionRepository = appSessionRepository;
         this.userService = userService;
@@ -63,6 +68,7 @@ public class AnalyticsService {
         this.locationLogRepository = locationLogRepository;
         this.matchRepository = matchRepository;
         this.openTableRepository = openTableRepository;
+        this.interestRepository = interestRepository;
     }
 
     // ==================== BQ 3 TYPE 2 GRUPAL ====================
@@ -526,4 +532,55 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 14 GRUPAL ====================
+    // Daniela Martinez: Which interests have the most students but the fewest open tables created for their activities?
+
+    // Days used as the default look-back window when no start date is given
+    private static final int DEFAULT_INTEREST_GAP_DAYS_BACK = 30;
+
+    // Ranks interests by unmet demand: most students with fewest open tables, highest demand first.
+    // since: optional, last 30 days if null. limit: optional, all interests if null.
+    @Transactional(readOnly = true)
+    public List<InterestDemandGapBasicDTO> getInterestsWithMostStudentsAndFewestTables(
+            LocalDateTime since, Integer limit) {
+
+        LocalDateTime start = since != null ? since
+                : LocalDateTime.now().minusDays(DEFAULT_INTEREST_GAP_DAYS_BACK);
+
+        log.info("Inicia proceso de consultar intereses con más estudiantes y menos open tables desde {}", start);
+
+        if (limit != null && limit <= 0) {
+            throw new IllegalArgumentException("El límite debe ser mayor a 0");
+        }
+
+        List<InterestDemandGapProjection> rows = interestRepository.findInterestDemandGapSince(start);
+        if (rows.isEmpty()) {
+            throw new NotFoundException("No hay intereses registrados");
+        }
+
+        List<InterestDemandGapBasicDTO> stats = rows.stream()
+                .map(this::toInterestDemandGap)
+                .limit(limit != null ? limit : Long.MAX_VALUE)
+                .toList();
+
+        log.info("Termina proceso de consultar intereses con más estudiantes y menos open tables desde {}", start);
+        return stats;
+    }
+
+    // Builds the demand gap DTO from the query row
+    private InterestDemandGapBasicDTO toInterestDemandGap(InterestDemandGapProjection row) {
+        long students = row.getStudentCount() != null ? row.getStudentCount() : 0L;
+        long tables = row.getOpenTableCount() != null ? row.getOpenTableCount() : 0L;
+        // Null ratio means infinite demand (no tables at all for this interest)
+        Double demandRatio = tables == 0 ? null : (double) students / tables;
+        return new InterestDemandGapBasicDTO(
+                row.getInterestId(),
+                row.getInterestName(),
+                students,
+                tables,
+                demandRatio);
+    }
+
+    // ================== END BQ 14 GRUPAL ==================
 }

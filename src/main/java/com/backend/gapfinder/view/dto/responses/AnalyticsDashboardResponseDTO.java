@@ -1,6 +1,7 @@
 package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -42,4 +43,7 @@ public class AnalyticsDashboardResponseDTO {
 
     // BQ 8: all the activities from the least to the most chosen in open tables (empty if there are no activities)
     private List<UnusedActivityStatsDTO> unusedActivities;
+
+    // BQ 14: interests with the most students but the fewest open tables, highest unmet demand first
+    private List<InterestDemandGapBasicDTO> interestDemandGap;
 }

@@ -150,7 +150,7 @@
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
     <div class="filter-group">
-      <span>Period (BQ 3, 4, 6, 8, 12 and 13)</span>
+      <span>Period (BQ 3, 4, 6, 8, 12, 13 and 7-S3)</span>
       <div class="period" id="period">
         <button data-days="7">Last 7 days</button>
         <button data-days="30" class="active">Last 30 days</button>
@@ -211,6 +211,11 @@
         <div class="bq-tag">BQ 8</div>
         <p class="question">Which activities are never or rarely chosen when creating open tables?</p>
         <div id="bq8"></div>
+      </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 7 SPRINT 3</div>
+        <p class="question">Which interests have the most students but the fewest open tables created for their activities?</p>
+        <div id="bqInterestDemandGap"></div>
       </div>
     </div>
   </section>
@@ -818,6 +823,103 @@
       </div>`);
   }
 
+  // BQ 7 Sprint 3: stacked-style horizontal bars showing students (background) vs open tables (foreground)
+  // Interests with 0 open tables are highlighted: they represent the highest unmet demand.
+  function renderBqInterestDemandGap(rows) {
+    const box = document.getElementById('bqInterestDemandGap');
+    if (!rows || rows.length === 0) {
+      clearChart('bqInterestDemandGap');
+      return showEmpty(box);
+    }
+
+    // The backend already sends them sorted: 0-table interests first, then by demand ratio desc
+    const zeroTables = rows.filter(r => r.openTableCount === 0).length;
+    const topInterest = rows[0];
+    const heroText = topInterest.openTableCount === 0
+      ? `${topInterest.interestName} — no open tables yet`
+      : `${topInterest.interestName} (${topInterest.studentCount} students / ${topInterest.openTableCount} tables)`;
+
+    const holder = document.createElement('div');
+    box.innerHTML = `
+      <div class="hero" style="font-size:22px;margin-bottom:4px">${esc(topInterest.interestName)}</div>
+      <div class="hero-sub">Highest unmet demand · ${topInterest.studentCount} students, ${topInterest.openTableCount} open tables${zeroTables > 1 ? ` · ${zeroTables} interests have no open tables at all` : ''}</div>
+      <div id="bqInterestDemandGapChart"></div>`;
+
+    drawChart('bqInterestDemandGap',
+      newCanvas(document.getElementById('bqInterestDemandGapChart'), barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.interestName),
+        datasets: [
+          {
+            label: 'Open tables created',
+            data: rows.map(r => r.openTableCount),
+            backgroundColor: rows.map(r => r.openTableCount === 0 ? ACCENT : ACCENT_MID),
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 1,
+            showValues: false
+          },
+          {
+            label: 'Students with interest',
+            data: rows.map(r => r.studentCount),
+            backgroundColor: ACCENT_SOFT,
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 2,
+            showValues: true,
+            formatValue: v => v
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 40 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            mode: 'index',
+            callbacks: {
+              label: ctx => ctx.datasetIndex === 0
+                ? `Open tables: ${ctx.raw}`
+                : `Students: ${ctx.raw}`,
+              afterBody: items => {
+                const r = rows[items[0].dataIndex];
+                return r.demandRatio != null
+                  ? `Demand ratio: ${r.demandRatio.toFixed(1)} students/table`
+                  : 'Demand ratio: ∞ (no tables yet)';
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Detail table
+    const tableRows = rows.map(r => `
+      <tr>
+        <td>${esc(r.interestName)}</td>
+        <td>${r.studentCount}</td>
+        <td>${r.openTableCount}</td>
+        <td>${r.demandRatio != null ? r.demandRatio.toFixed(1) : '∞'}</td>
+      </tr>`).join('');
+    box.insertAdjacentHTML('beforeend', `
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Interest</th><th>Students</th><th>Open tables</th><th>Demand ratio</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`);
+    box.insertAdjacentHTML('beforeend', '<p class="note">Dark blue bar: 0 open tables (infinite demand) · Light bar: students with the interest · Demand ratio = students ÷ open tables (higher = more unmet demand).</p>');
+  }
+
   // ---------- Loading ----------
 
   const periodButtons = document.querySelectorAll('#period button');
@@ -884,6 +986,7 @@
       renderBq11(data.buildingsByGapPresence);
       renderBq12(data.unmatchedFreeTimeByCareerSemester);
       renderBq13(data.interestsByLargestFreeGroup);
+      renderBqInterestDemandGap(data.interestDemandGap);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;

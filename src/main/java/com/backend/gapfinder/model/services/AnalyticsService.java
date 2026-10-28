@@ -56,10 +56,10 @@ public class AnalyticsService {
     private final InterestRepository interestRepository;
 
     public AnalyticsService(OpenTableAbandonmentService abandonmentService, GapRepository gapRepository,
-                            UserLocationLogRepository locationLogRepository, MatchRepository matchRepository,
-                            OpenTableRepository openTableRepository, AppSessionRepository appSessionRepository,
-                            UserService userService, ActivityRepository activityRepository,
-                            InterestRepository interestRepository) {
+            UserLocationLogRepository locationLogRepository, MatchRepository matchRepository,
+            OpenTableRepository openTableRepository, AppSessionRepository appSessionRepository,
+            UserService userService, ActivityRepository activityRepository,
+            InterestRepository interestRepository) {
         this.activityRepository = activityRepository;
         this.appSessionRepository = appSessionRepository;
         this.userService = userService;
@@ -74,7 +74,8 @@ public class AnalyticsService {
     // ==================== BQ 3 TYPE 2 GRUPAL ====================
     // At which step do students most often leave the Open Table creating process?
 
-    // Retrieves the creation step with the highest abandonment rate since the given date
+    // Retrieves the creation step with the highest abandonment rate since the given
+    // date
     @Transactional(readOnly = true)
     public OpenTableAbandonmentStatsBasicDTO getMostAbandonedStep(LocalDateTime since) {
         log.info("Inicia proceso de consultar el paso más abandonado desde {}", since);
@@ -91,7 +92,8 @@ public class AnalyticsService {
     // ==================== BQ 5 ====================
     // Miguel Cabrera: Which gap durations have the lowest match coverage?
 
-    // Retrieves match coverage metrics grouped by gap duration buckets sorted by lowest coverage
+    // Retrieves match coverage metrics grouped by gap duration buckets sorted by
+    // lowest coverage
     @Transactional(readOnly = true)
     public List<GapCoverageResponseDTO> getMatchCoverageByGapDuration() {
         log.info("Inicia proceso de consultar la cobertura de matches por duración de gap");
@@ -107,8 +109,7 @@ public class AnalyticsService {
                     dto.setTotalGapMinutes(totalGapMinutes);
                     dto.setTotalMatchedMinutes(totalMatchedMinutes);
                     dto.setCoveragePercent(
-                            calculateCoveragePercent(totalMatchedMinutes, totalGapMinutes)
-                    );
+                            calculateCoveragePercent(totalMatchedMinutes, totalGapMinutes));
 
                     return dto;
                 })
@@ -119,7 +120,8 @@ public class AnalyticsService {
         return result;
     }
 
-    // Calculates the coverage percentage based on matched minutes and total gap minutes
+    // Calculates the coverage percentage based on matched minutes and total gap
+    // minutes
     private double calculateCoveragePercent(double matchedMinutes, double gapMinutes) {
         if (gapMinutes <= 0) {
             return 0.0;
@@ -131,9 +133,11 @@ public class AnalyticsService {
     // ================== END BQ 5 ==================
 
     // ==================== BQ 7 ====================
-    // Sofia Arias: Which connection method leads to more accepted meetups: open tables or matches?
+    // Sofia Arias: Which connection method leads to more accepted meetups: open
+    // tables or matches?
 
-    // Compares the percentage of completed matches against the percentage of completed open tables
+    // Compares the percentage of completed matches against the percentage of
+    // completed open tables
     @Transactional(readOnly = true)
     public ConnectionMethodResponseDTO compareConnectionMethods() {
         log.info("Inicia proceso de comparar los métodos de conexión (matches vs open tables)");
@@ -172,13 +176,16 @@ public class AnalyticsService {
     // ================== END BQ 7 ==================
 
     // ==================== BQ 12 INDIVIDUAL ====================
-    // Sofia Morato: Which careers and semesters have the highest rate of unmatched free time on campus?
+    // Sofia Morato: Which careers and semesters have the highest rate of unmatched
+    // free time on campus?
 
     // Lower bound used when no start date is given (the whole history)
     private static final LocalDateTime HISTORY_START = LocalDateTime.of(1970, 1, 1, 0, 0);
 
-    // Ranks the (career, semester) groups by their unmatched free time rate, highest first
-    // from: optional, whole history if null. to: optional, now if null (future gaps can still be matched)
+    // Ranks the (career, semester) groups by their unmatched free time rate,
+    // highest first
+    // from: optional, whole history if null. to: optional, now if null (future gaps
+    // can still be matched)
     // limit: optional, all groups if null
     @Transactional(readOnly = true)
     public List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeByCareerAndSemester(
@@ -235,11 +242,11 @@ public class AnalyticsService {
 
     // ================== END BQ 12 INDIVIDUAL ==================
 
-
     // ==================== BQ 11 ====================
     // Joel: Where do the most students have free time on campus?
 
-    // Retrieves student presence and free time metrics aggregated by campus building
+    // Retrieves student presence and free time metrics aggregated by campus
+    // building
     @Transactional(readOnly = true)
     public List<BuildingGapPresenceResponseDTO> getBuildingsByGapPresence() {
         log.info("Inicia proceso de consultar la presencia de estudiantes en gaps por edificio");
@@ -260,12 +267,15 @@ public class AnalyticsService {
     // ================== END BQ 11 ==================
 
     // ==================== BQ 13 INDIVIDUAL ====================
-    // Daniela Martinez: Which interests are shared by the largest groups of students who are free at the same time?
+    // Daniela Martinez: Which interests are shared by the largest groups of
+    // students who are free at the same time?
 
-    // Upper bound used when no end date is given (LocalDateTime.MAX is out of the PostgreSQL timestamp range)
+    // Upper bound used when no end date is given (LocalDateTime.MAX is out of the
+    // PostgreSQL timestamp range)
     private static final LocalDateTime FUTURE_END = LocalDateTime.of(9999, 12, 31, 23, 59);
 
-    // Ranks the interests by the largest group of students sharing them who are free at the same time, largest first
+    // Ranks the interests by the largest group of students sharing them who are
+    // free at the same time, largest first
     // from: optional, whole history if null. to: optional, no upper bound if null
     // limit: optional, all interests if null
     @Transactional(readOnly = true)
@@ -275,7 +285,8 @@ public class AnalyticsService {
         LocalDateTime start = from != null ? from : HISTORY_START;
         LocalDateTime end = to != null ? to : FUTURE_END;
 
-        log.info("Inicia proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
+        log.info(
+                "Inicia proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
                 start, end);
 
         if (!start.isBefore(end)) {
@@ -298,7 +309,8 @@ public class AnalyticsService {
             throw new NotFoundException("No hay estudiantes con intereses y gaps en el rango de fechas indicado");
         }
 
-        log.info("Termina proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
+        log.info(
+                "Termina proceso de consultar los intereses compartidos por los grupos libres más grandes entre {} y {}",
                 start, end);
         return stats;
     }
@@ -318,21 +330,25 @@ public class AnalyticsService {
     // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
     // Sofia Morato: How long after a gap starts do students open the app?
 
-    // Ranges of minutes in natural order; the last one groups the gaps where the app was not opened
+    // Ranges of minutes in natural order; the last one groups the gaps where the
+    // app was not opened
     private static final List<String> APP_OPEN_RANGES = List.of("0-5", "5-15", "15-30", "30+", "No abrió");
 
     // Minimum gaps of the user needed to trust their own average
     private static final long MIN_USER_GAPS = 3;
 
-    // Bounds of the reminder offset in minutes (not instant, not too late to be useful)
+    // Bounds of the reminder offset in minutes (not instant, not too late to be
+    // useful)
     private static final int MIN_OFFSET_MINUTES = 2;
     private static final int MAX_OFFSET_MINUTES = 30;
 
     // Offset used when nobody has data yet
     private static final int DEFAULT_OFFSET_MINUTES = 5;
 
-    // Distribution of the minutes after a gap starts at which the app is first opened, plus the average of all users
-    // userId: optional, null for the dashboard. With a user it also returns the minutes after the gap start to send them the reminder
+    // Distribution of the minutes after a gap starts at which the app is first
+    // opened, plus the average of all users
+    // userId: optional, null for the dashboard. With a user it also returns the
+    // minutes after the gap start to send them the reminder
     // since: optional, whole history if null
     @Transactional(readOnly = true)
     public AppOpenDelayStatsDTO getAppOpenDelay(Long userId, LocalDateTime since) {
@@ -360,7 +376,8 @@ public class AnalyticsService {
                         entry.getKey(), entry.getValue(), (double) entry.getValue() / totalGaps * 100))
                 .toList();
 
-        // Most frequent range where the app was opened (the first one in natural order wins a tie)
+        // Most frequent range where the app was opened (the first one in natural order
+        // wins a tie)
         String mostFrequentRange = distribution.stream()
                 .filter(stat -> !stat.range().equals("No abrió") && stat.gaps() > 0)
                 .max(Comparator.comparingLong(AppOpenDelayRangeStatsBasicDTO::gaps))
@@ -373,7 +390,8 @@ public class AnalyticsService {
 
         // Without a user there is no reminder offset
         if (userId == null) {
-            log.info("Termina proceso de consultar el retraso en abrir la app tras el inicio de un gap desde {}", start);
+            log.info("Termina proceso de consultar el retraso en abrir la app tras el inicio de un gap desde {}",
+                    start);
             return new AppOpenDelayStatsDTO(distribution, mostFrequentRange, globalAverage, globalGaps,
                     null, null, null, null);
         }
@@ -381,7 +399,8 @@ public class AnalyticsService {
         long userGaps = averages.getUserGapsCounted() != null ? averages.getUserGapsCounted() : 0L;
         Double userAverage = userGaps > 0 ? averages.getUserAverageMinutes() : null;
 
-        // The user's own average if they have enough gaps, else the average of all users, else a default
+        // The user's own average if they have enough gaps, else the average of all
+        // users, else a default
         double offset;
         String source;
         if (userGaps >= MIN_USER_GAPS && userAverage != null) {
@@ -406,14 +425,17 @@ public class AnalyticsService {
     // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
 
     // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
-    // Joel: Which activity does the student choose most often when creating open tables,
+    // Joel: Which activity does the student choose most often when creating open
+    // tables,
     // so the app can preselect it the next time they create one?
 
     // Number of activities in the ranking of the dashboard
     private static final int PREFERRED_ACTIVITY_TOP = 10;
 
-    // Activities most preferred by all the students and the share of students who always repeat the same one
-    // userId: optional, null for the dashboard. With a user it also returns their own preferred activity (null if they
+    // Activities most preferred by all the students and the share of students who
+    // always repeat the same one
+    // userId: optional, null for the dashboard. With a user it also returns their
+    // own preferred activity (null if they
     // created no open tables in the period), used by the app to preselect it
     // since: optional, whole history if null
     @Transactional(readOnly = true)
@@ -443,10 +465,12 @@ public class AnalyticsService {
         // A student can only repeat an activity with two or more open tables
         long withSeveral = totals.getStudentsWithSeveralTables() != null ? totals.getStudentsWithSeveralTables() : 0L;
         long repeating = totals.getStudentsRepeatingSameActivity() != null
-                ? totals.getStudentsRepeatingSameActivity() : 0L;
+                ? totals.getStudentsRepeatingSameActivity()
+                : 0L;
         Double repeatPercentage = withSeveral > 0 ? (double) repeating / withSeveral * 100 : null;
 
-        // The first row of the student is their preferred activity: most chosen, tie the most recently used
+        // The first row of the student is their preferred activity: most chosen, tie
+        // the most recently used
         UserPreferredActivityBasicDTO userPreferred = null;
         if (userId != null) {
             userPreferred = openTableRepository.findActivityUsageByStudent(userId, start).stream()
@@ -467,17 +491,22 @@ public class AnalyticsService {
 
     // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
     // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
-    // Sofia Morato: Which activities are never or rarely chosen when creating open tables?
+    // Sofia Morato: Which activities are never or rarely chosen when creating open
+    // tables?
 
-    // An activity chosen in less than this percentage of the open tables of the period is RARELY chosen
-    // 5 % is a simple, easy to explain cut: an activity that gets less than 1 of every 20 open tables is clearly ignored
+    // An activity chosen in less than this percentage of the open tables of the
+    // period is RARELY chosen
+    // 5 % is a simple, easy to explain cut: an activity that gets less than 1 of
+    // every 20 open tables is clearly ignored
     private static final double RARELY_CHOSEN_THRESHOLD_PERCENT = 5.0;
 
     // Days used as the default start date, the same as the dashboard
     private static final int DEFAULT_ACTIVITY_DAYS_BACK = 30;
 
-    // Lists ALL the activities from the least to the most chosen, classified as NEVER, RARELY or OK
-    // since: optional, last 30 days if null. limit: optional, all activities if null
+    // Lists ALL the activities from the least to the most chosen, classified as
+    // NEVER, RARELY or OK
+    // since: optional, last 30 days if null. limit: optional, all activities if
+    // null
     @Transactional(readOnly = true)
     public List<UnusedActivityStatsDTO> getUnusedActivities(LocalDateTime since, Integer limit) {
         LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_ACTIVITY_DAYS_BACK);
@@ -493,7 +522,8 @@ public class AnalyticsService {
             throw new NotFoundException("No hay actividades registradas");
         }
 
-        // The percentage is over the open tables that chose an activity, not over all the open tables
+        // The percentage is over the open tables that chose an activity, not over all
+        // the open tables
         long totalTables = rows.stream()
                 .mapToLong(row -> row.getOpenTables() != null ? row.getOpenTables() : 0L)
                 .sum();
@@ -508,7 +538,8 @@ public class AnalyticsService {
         return stats;
     }
 
-    // Builds the statistics of an activity with its share of the open tables and its classification
+    // Builds the statistics of an activity with its share of the open tables and
+    // its classification
     private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables) {
         long tables = row.getOpenTables() != null ? row.getOpenTables() : 0L;
         double percentage = totalTables == 0 ? 0.0 : (double) tables / totalTables * 100;
@@ -533,14 +564,17 @@ public class AnalyticsService {
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
 
-    // ==================== BQ 14 GRUPAL ====================
-    // Daniela Martinez: Which interests have the most students but the fewest open tables created for their activities?
+    // ==================== BQ 14 INDIVIDUAL ====================
+    // Daniela Martinez: Which interests have the most students but the fewest open
+    // tables created for their activities?
 
     // Days used as the default look-back window when no start date is given
     private static final int DEFAULT_INTEREST_GAP_DAYS_BACK = 30;
 
-    // Ranks interests by unmet demand: most students with fewest open tables, highest demand first.
-    // since: optional, last 30 days if null. limit: optional, all interests if null.
+    // Ranks interests by unmet demand: most students with fewest open tables,
+    // highest demand first.
+    // since: optional, last 30 days if null. limit: optional, all interests if
+    // null.
     @Transactional(readOnly = true)
     public List<InterestDemandGapBasicDTO> getInterestsWithMostStudentsAndFewestTables(
             LocalDateTime since, Integer limit) {
@@ -559,8 +593,17 @@ public class AnalyticsService {
             throw new NotFoundException("No hay intereses registrados");
         }
 
+        // Sort: null demandRatio (0 tables = infinite demand) comes first;
+        // among rationed interests: highest ratio first; tiebreaker: most students
+        // first.
+        Comparator<InterestDemandGapBasicDTO> byDemand = Comparator
+                .comparing(InterestDemandGapBasicDTO::demandRatio,
+                        Comparator.nullsFirst(Comparator.reverseOrder()))
+                .thenComparing(Comparator.comparingLong(InterestDemandGapBasicDTO::studentCount).reversed());
+
         List<InterestDemandGapBasicDTO> stats = rows.stream()
                 .map(this::toInterestDemandGap)
+                .sorted(byDemand)
                 .limit(limit != null ? limit : Long.MAX_VALUE)
                 .toList();
 
@@ -582,5 +625,5 @@ public class AnalyticsService {
                 demandRatio);
     }
 
-    // ================== END BQ 14 GRUPAL ==================
+    // ================== END BQ 14 INDIVIDUAL ==================
 }

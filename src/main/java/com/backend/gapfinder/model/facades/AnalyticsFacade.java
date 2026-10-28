@@ -34,9 +34,12 @@ public class AnalyticsFacade {
     }
 
     // Collects the answers of all the business questions in a single response
-    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ 12 and BQ 13)
-    // Not @Transactional on purpose: each BQ runs in its own transaction, so a "no data" error in one of them
-    // does not mark a shared transaction as rollback-only and break the whole dashboard
+    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ
+    // 12 and BQ 13)
+    // Not @Transactional on purpose: each BQ runs in its own transaction, so a "no
+    // data" error in one of them
+    // does not mark a shared transaction as rollback-only and break the whole
+    // dashboard
     public AnalyticsDashboardResponseDTO getDashboard(LocalDateTime since, Integer limit) {
         LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_DAYS_BACK);
 
@@ -58,7 +61,8 @@ public class AnalyticsFacade {
         return dashboard;
     }
 
-    // BQ 3: returns null instead of failing when there are no abandonments since the given date
+    // BQ 3: returns null instead of failing when there are no abandonments since
+    // the given date
     private OpenTableAbandonmentStatsBasicDTO getMostAbandonedStepOrNull(LocalDateTime since) {
         try {
             return analyticsService.getMostAbandonedStep(since);
@@ -68,7 +72,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 4: returns null instead of failing when there are no finished gaps since the given date
+    // BQ 4: returns null instead of failing when there are no finished gaps since
+    // the given date
     private AppOpenDelayStatsDTO getAppOpenDelayOrNull(LocalDateTime since) {
         try {
             return analyticsService.getAppOpenDelay(null, since);
@@ -78,7 +83,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 6: returns null instead of failing when there are no open tables with activity since the given date
+    // BQ 6: returns null instead of failing when there are no open tables with
+    // activity since the given date
     private PreferredActivityStatsDTO getPreferredActivityOrNull(LocalDateTime since) {
         try {
             return analyticsService.getPreferredActivity(null, since);
@@ -88,7 +94,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 12: returns an empty list instead of failing when there are no gaps since the given date
+    // BQ 12: returns an empty list instead of failing when there are no gaps since
+    // the given date
     private List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeOrEmpty(LocalDateTime since, Integer limit) {
         try {
             return analyticsService.getUnmatchedFreeTimeByCareerAndSemester(since, null, limit);
@@ -98,9 +105,10 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 13: returns an empty list instead of failing when there are no interests with gaps since the given date
+    // BQ 13: returns an empty list instead of failing when there are no interests
+    // with gaps since the given date
     private List<SharedInterestGroupStatsBasicDTO> getInterestsByLargestFreeGroupOrEmpty(LocalDateTime since,
-                                                                                         Integer limit) {
+            Integer limit) {
         try {
             return analyticsService.getInterestsByLargestFreeGroup(since, null, limit);
         } catch (NotFoundException e) {

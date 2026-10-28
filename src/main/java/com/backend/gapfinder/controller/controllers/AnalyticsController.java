@@ -3,6 +3,7 @@ package com.backend.gapfinder.controller.controllers;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
@@ -171,4 +172,18 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 10 INDIVIDUAL TYPE 3 ====================
+
+    // In which match score range are match proposals most often rejected?
+    // Get the 5 score ranges in natural order with their rejection rate, marking the highest one
+    // GET /analytics/matches/rejection-by-score?since=2026-09-01T00:00:00
+    @GetMapping("/matches/rejection-by-score")
+    public List<RejectionByScoreRangeDTO> getRejectionByScoreRange(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getRejectionByScoreRange(since);
+    }
+
+    // ================== END BQ 10 INDIVIDUAL TYPE 3 ==================
 }

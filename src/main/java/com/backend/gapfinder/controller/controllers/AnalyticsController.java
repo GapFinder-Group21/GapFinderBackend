@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
@@ -14,7 +15,6 @@ import com.backend.gapfinder.security.AccessGuard;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
-
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -58,7 +58,6 @@ public class AnalyticsController {
         return analyticsService.getMostAbandonedStep(since);
     }
 
-    
     // ==================== BQ 5 ====================
 
     // Get match coverage metrics grouped by gap duration, sorted by lowest coverage
@@ -72,7 +71,8 @@ public class AnalyticsController {
 
     // ==================== BQ 7 ====================
 
-    // Compare the completion percentage of matches and open tables to see which leads to more meetups
+    // Compare the completion percentage of matches and open tables to see which
+    // leads to more meetups
     // GET /analytics/connection-methods/accepted-meetups
     @GetMapping("/connection-methods/accepted-meetups")
     public ConnectionMethodResponseDTO compareConnectionMethods() {
@@ -82,9 +82,12 @@ public class AnalyticsController {
     // ================== END BQ 7 ==================
     // ==================== BQ 12 INDIVIDUAL ====================
 
-    // Which careers and semesters have the highest rate of unmatched free time on campus?
-    // Get the (career, semester) groups ranked by unmatched free time rate, highest first
-    // GET /analytics/free-time/unmatched-by-career-semester?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
+    // Which careers and semesters have the highest rate of unmatched free time on
+    // campus?
+    // Get the (career, semester) groups ranked by unmatched free time rate, highest
+    // first
+    // GET
+    // /analytics/free-time/unmatched-by-career-semester?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
     @GetMapping("/free-time/unmatched-by-career-semester")
     public List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeByCareerAndSemester(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
@@ -96,7 +99,7 @@ public class AnalyticsController {
 
     // ================== END BQ 12 INDIVIDUAL ==================
 
-        // ==================== BQ 11 ====================
+    // ==================== BQ 11 ====================
 
     // Get student presence and free time metrics aggregated by campus building
     // GET /analytics/buildings/gap-presence
@@ -109,9 +112,12 @@ public class AnalyticsController {
 
     // ==================== BQ 13 INDIVIDUAL ====================
 
-    // Which interests are shared by the largest groups of students who are free at the same time?
-    // Get the interests ranked by the largest group of students sharing them who are free at the same time
-    // GET /analytics/interests/largest-free-groups?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
+    // Which interests are shared by the largest groups of students who are free at
+    // the same time?
+    // Get the interests ranked by the largest group of students sharing them who
+    // are free at the same time
+    // GET
+    // /analytics/interests/largest-free-groups?from=2026-09-01T00:00:00&to=2026-10-01T00:00:00&limit=10
     @GetMapping("/interests/largest-free-groups")
     public List<SharedInterestGroupStatsBasicDTO> getInterestsByLargestFreeGroup(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
@@ -126,7 +132,8 @@ public class AnalyticsController {
     // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
 
     // How long after a gap starts do students open the app?
-    // Get the distribution of the minutes after a gap starts at which the app is first opened
+    // Get the distribution of the minutes after a gap starts at which the app is
+    // first opened
     // GET /analytics/app-open-delay?since=2026-09-01T00:00:00
     @GetMapping("/app-open-delay")
     public AppOpenDelayStatsDTO getAppOpenDelay(
@@ -135,7 +142,8 @@ public class AnalyticsController {
         return analyticsService.getAppOpenDelay(null, since);
     }
 
-    // Same distribution plus the minutes after a gap starts at which the app should remind the user
+    // Same distribution plus the minutes after a gap starts at which the app should
+    // remind the user
     // GET /analytics/app-open-delay/user/{userId}?since=2026-09-01T00:00:00
     @GetMapping("/app-open-delay/user/{userId}")
     public AppOpenDelayStatsDTO getAppOpenDelayForUser(
@@ -150,7 +158,8 @@ public class AnalyticsController {
     // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
 
     // Which activity does the student choose most often when creating open tables?
-    // Get the activities most preferred by all the students and the share of students who always repeat the same one
+    // Get the activities most preferred by all the students and the share of
+    // students who always repeat the same one
     // GET /analytics/preferred-activity?since=2026-09-01T00:00:00
     @GetMapping("/preferred-activity")
     public PreferredActivityStatsDTO getPreferredActivity(
@@ -159,7 +168,8 @@ public class AnalyticsController {
         return analyticsService.getPreferredActivity(null, since);
     }
 
-    // Same answer plus the activity the user chooses most often (null if they created no open tables)
+    // Same answer plus the activity the user chooses most often (null if they
+    // created no open tables)
     // The app preselects it when the user creates an open table
     // GET /analytics/preferred-activity/user/{userId}?since=2026-09-01T00:00:00
     @GetMapping("/preferred-activity/user/{userId}")
@@ -177,7 +187,8 @@ public class AnalyticsController {
     // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
 
     // Which activities are never or rarely chosen when creating open tables?
-    // Get all the activities from the least to the most chosen, classified as NEVER, RARELY or OK
+    // Get all the activities from the least to the most chosen, classified as
+    // NEVER, RARELY or OK
     // GET /analytics/activities/unused?since=2026-09-01T00:00:00&limit=10
     @GetMapping("/activities/unused")
     public List<UnusedActivityStatsDTO> getUnusedActivities(
@@ -202,4 +213,21 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 10 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 14 INDIVIDUAL ====================
+
+    // Which interests have the most students but the fewest open tables created for
+    // their activities?
+    // Returns all interests ranked by unmet demand (most students, fewest open
+    // tables), highest first.
+    // GET /analytics/interests/demand-gap?since=2026-09-01T00:00:00&limit=10
+    @GetMapping("/interests/demand-gap")
+    public List<InterestDemandGapBasicDTO> getInterestDemandGap(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getInterestsWithMostStudentsAndFewestTables(since, limit);
+    }
+
+    // ================== END BQ 14 INDIVIDUAL ==================
 }

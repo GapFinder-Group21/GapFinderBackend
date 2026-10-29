@@ -1,6 +1,8 @@
 package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
@@ -53,6 +55,7 @@ public class AnalyticsFacade {
         dashboard.setUnmatchedFreeTimeByCareerSemester(getUnmatchedFreeTimeOrEmpty(start, limit));
         dashboard.setInterestsByLargestFreeGroup(getInterestsByLargestFreeGroupOrEmpty(start, limit));
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
+        dashboard.setInterestDemandGap(getInterestDemandGapOrEmpty(start, limit));
         dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
@@ -79,7 +82,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 4: returns null instead of failing when there are no finished gaps since the given date
+    // BQ 4: returns null instead of failing when there are no finished gaps since
+    // the given date
     private AppOpenDelayStatsDTO getAppOpenDelayOrNull(LocalDateTime since) {
         try {
             return analyticsService.getAppOpenDelay(null, since);
@@ -89,7 +93,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 6: returns null instead of failing when there are no open tables with activity since the given date
+    // BQ 6: returns null instead of failing when there are no open tables with
+    // activity since the given date
     private PreferredActivityStatsDTO getPreferredActivityOrNull(LocalDateTime since) {
         try {
             return analyticsService.getPreferredActivity(null, since);
@@ -116,9 +121,10 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 13: returns an empty list instead of failing when there are no interests with gaps since the given date
+    // BQ 13: returns an empty list instead of failing when there are no interests
+    // with gaps since the given date
     private List<SharedInterestGroupStatsBasicDTO> getInterestsByLargestFreeGroupOrEmpty(LocalDateTime since,
-                                                                                         Integer limit) {
+            Integer limit) {
         try {
             return analyticsService.getInterestsByLargestFreeGroup(since, null, limit);
         } catch (NotFoundException e) {
@@ -144,6 +150,16 @@ public class AnalyticsFacade {
             return analyticsService.getRejectionByScoreRange(since);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay matches respondidos desde {}", since);
+            return List.of();
+        }
+    }
+
+    // BQ 14: returns an empty list instead of failing when there are no interests
+    private List<InterestDemandGapBasicDTO> getInterestDemandGapOrEmpty(LocalDateTime since, Integer limit) {
+        try {
+            return analyticsService.getInterestsWithMostStudentsAndFewestTables(since, limit);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay intereses registrados desde {}", since);
             return List.of();
         }
     }

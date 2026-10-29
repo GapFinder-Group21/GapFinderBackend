@@ -2,8 +2,10 @@ package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
@@ -31,8 +33,22 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    // BQ 3: At which step do students most often leave the Open Table creating
-    // process?
+    // ==================== BQ 2 GRUPAL TYPE 1 ====================
+
+    // How many location updates per hour does the backend receive from each student while they are inside a campus building?
+    // Get the updates per student-hour (average, median, max and distribution) and the rate of each student
+    // GET /analytics/location-updates/per-hour?since=2026-09-01T00:00:00&limit=10
+    @GetMapping("/location-updates/per-hour")
+    public LocationUpdateRateStatsDTO getLocationUpdatesPerHour(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @RequestParam(required = false) Integer limit) {
+
+        return analyticsService.getLocationUpdatesPerHour(since, limit);
+    }
+
+    // ================== END BQ 2 GRUPAL TYPE 1 ==================
+
+    // BQ 3: At which step do students most often leave the Open Table creating process?
     // Get the creation step with the highest abandonment rate since the given date
     // GET /analytics/open-tables/most-abandoned-step?since=2026-09-01T00:00:00
     @GetMapping("/open-tables/most-abandoned-step")
@@ -183,6 +199,20 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 10 INDIVIDUAL TYPE 3 ====================
+
+    // In which match score range are match proposals most often rejected?
+    // Get the 5 score ranges in natural order with their rejection rate, marking the highest one
+    // GET /analytics/matches/rejection-by-score?since=2026-09-01T00:00:00
+    @GetMapping("/matches/rejection-by-score")
+    public List<RejectionByScoreRangeDTO> getRejectionByScoreRange(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getRejectionByScoreRange(since);
+    }
+
+    // ================== END BQ 10 INDIVIDUAL TYPE 3 ==================
 
     // ==================== BQ 14 INDIVIDUAL ====================
 

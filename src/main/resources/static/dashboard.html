@@ -158,7 +158,7 @@
         <button data-days="all">All time</button>
       </div>
     </div>
-    <label>Top N (BQ 12 and 13)
+    <label>Top N (BQ 2, 12 and 13)
       <input type="number" id="limit" min="1" placeholder="All">
     </label>
     <button id="applyBtn">Apply filters</button>
@@ -170,6 +170,18 @@
   </div>
 
   <div class="error" id="error" hidden></div>
+
+  <!-- TYPE 1 -->
+  <section class="type-section">
+    <h2 class="type-title">Type 1</h2>
+    <div class="grid">
+      <div class="card wide">
+        <div class="bq-tag">BQ 2</div>
+        <p class="question">How many location updates per hour does the backend receive from each student while they are inside a campus building?</p>
+        <div id="bq2"></div>
+      </div>
+    </div>
+  </section>
 
   <!-- TYPE 2 -->
   <section class="type-section">
@@ -271,6 +283,12 @@
   // Natural order of the BQ 5 duration ranges (the backend sends them sorted by coverage)
   const DURATION_ORDER = ['<30', '30-60', '60-120', '120-180', '180+'];
 
+  // Labels of the BQ 2 ranges of updates per hour (the backend already sends them in natural order)
+  const UPDATE_RANGE_LABELS = { '1': '1', '2-5': '2-5', '6-15': '6-15', '16-30': '16-30', '31+': '31+' };
+
+  // Students shown in the BQ 2 table when no Top N is applied
+  const BQ2_DEFAULT_ROWS = 5;
+
   // Labels of the BQ 4 ranges sent by the backend (the backend already sends them in natural order)
   const OPEN_DELAY_LABELS = { '0-5': '0-5 min', '5-15': '5-15 min', '15-30': '15-30 min', '30+': '30+ min', 'No abrió': 'Did not open' };
 
@@ -368,6 +386,77 @@
   const barsHeight = count => Math.max(140, count * 42 + 40);
 
   // ---------- BQ renderers ----------
+
+  // BQ 2: headline (median updates per student-hour), column chart of the student-hours per range and
+  // a table with the students that send the most updates
+  function renderBq2(data) {
+    const box = document.getElementById('bq2');
+    if (!data) {
+      clearChart('bq2');
+      return showEmpty(box);
+    }
+
+    const rows = data.distribution;
+    const busiest = rows.reduce((best, r) => (r.studentHours > best.studentHours ? r : best), rows[0]);
+
+    box.innerHTML = `
+      <div class="hero">${data.medianPerHour.toFixed(1)} updates / hour</div>
+      <div class="hero-sub">Median per student-hour · average ${data.averagePerHour.toFixed(1)} · maximum ${data.maxPerHour}
+        (${data.studentHours} student-hours of ${data.studentCount} students)</div>
+      <div id="bq2Chart"></div>`;
+
+    drawChart('bq2', newCanvas(document.getElementById('bq2Chart'), 180), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => `${UPDATE_RANGE_LABELS[r.range] || r.range} / hour`),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map(r => r === busiest ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of student-hours: ${pct(r.percentage)}`, `Student-hours: ${r.studentHours}`];
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // With Top N the backend already limits the students; without it only the first ones are shown
+    const students = applied.limit ? data.students : data.students.slice(0, BQ2_DEFAULT_ROWS);
+    const tableRows = students.map(r => `
+      <tr>
+        <td>${esc(r.userName)}</td>
+        <td>${r.averagePerHour.toFixed(1)}</td>
+        <td>${r.maxPerHour}</td>
+        <td>${r.hoursInside}</td>
+      </tr>`).join('');
+    box.insertAdjacentHTML('beforeend', `
+      <p class="note">Highlighted: the most common range. A student-hour is one student in one clock hour with at least one
+        update; the backend only logs updates sent from inside a building.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Student</th><th>Average / hour</th><th>Max in one hour</th><th>Hours inside</th></tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>`);
+  }
 
   // BQ 3: headline card (the backend returns only the most abandoned step)
   function renderBq3(data) {
@@ -935,6 +1024,7 @@
       const data = await response.json();
       if (myRequest !== requestNumber) return;
 
+      renderBq2(data.locationUpdatesPerHour);
       renderBq3(data.mostAbandonedStep);
       renderBq4(data.appOpenDelay);
       renderBq5(data.gapCoverageByDuration);

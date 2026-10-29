@@ -1,8 +1,9 @@
 package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
-import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
@@ -45,12 +46,14 @@ public class AnalyticsFacade {
         dashboard.setLocationUpdatesPerHour(getLocationUpdatesPerHourOrNull(start, limit));
         dashboard.setMostAbandonedStep(getMostAbandonedStepOrNull(start));
         dashboard.setAppOpenDelay(getAppOpenDelayOrNull(start));
+        dashboard.setPreferredActivity(getPreferredActivityOrNull(start));
         dashboard.setGapCoverageByDuration(analyticsService.getMatchCoverageByGapDuration());
         dashboard.setConnectionMethods(analyticsService.compareConnectionMethods());
         dashboard.setBuildingsByGapPresence(analyticsService.getBuildingsByGapPresence());
         dashboard.setUnmatchedFreeTimeByCareerSemester(getUnmatchedFreeTimeOrEmpty(start, limit));
         dashboard.setInterestsByLargestFreeGroup(getInterestsByLargestFreeGroupOrEmpty(start, limit));
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
+        dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
@@ -86,8 +89,25 @@ public class AnalyticsFacade {
         }
     }
 
+    // BQ 6: returns null instead of failing when there are no open tables with activity since the given date
+    private PreferredActivityStatsDTO getPreferredActivityOrNull(LocalDateTime since) {
+        try {
+            return analyticsService.getPreferredActivity(null, since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay open tables con actividad creadas desde {}", since);
+            return null;
+        }
+    }
+
     // BQ 12: returns an empty list instead of failing when there are no gaps since the given date
+    // A start date that is not in the past has no gaps to count (BQ 12 counts up to now), so it is an empty answer
+    // and not an error: otherwise one future date would make the whole dashboard fail
     private List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeOrEmpty(LocalDateTime since, Integer limit) {
+        if (!since.isBefore(LocalDateTime.now())) {
+            log.info("Dashboard: la fecha {} no es pasada, no hay gaps que contar", since);
+            return List.of();
+        }
+
         try {
             return analyticsService.getUnmatchedFreeTimeByCareerAndSemester(since, null, limit);
         } catch (NotFoundException e) {
@@ -114,6 +134,16 @@ public class AnalyticsFacade {
             return analyticsService.getUnusedActivities(since, null);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay actividades registradas desde {}", since);
+            return List.of();
+        }
+    }
+
+    // BQ 10: returns an empty list instead of failing when there are no answered matches since the given date
+    private List<RejectionByScoreRangeDTO> getRejectionByScoreRangeOrEmpty(LocalDateTime since) {
+        try {
+            return analyticsService.getRejectionByScoreRange(since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay matches respondidos desde {}", since);
             return List.of();
         }
     }

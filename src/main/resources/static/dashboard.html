@@ -150,7 +150,7 @@
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
     <div class="filter-group">
-      <span>Period (BQ 2, 3, 4, 8, 12 and 13)</span>
+      <span>Period (BQ 3, 4, 6, 8, 10, 12 and 13)</span>
       <div class="period" id="period">
         <button data-days="7">Last 7 days</button>
         <button data-days="30" class="active">Last 30 days</button>
@@ -202,6 +202,11 @@
         <p class="question">Which gap durations have the lowest match coverage?</p>
         <div id="bq5"></div>
       </div>
+      <div class="card">
+        <div class="bq-tag">BQ 6</div>
+        <p class="question">Which activity does the student choose most often when creating open tables, so the app can preselect it the next time they create one?</p>
+        <div id="bq6"></div>
+      </div>
     </div>
   </section>
 
@@ -218,6 +223,11 @@
         <div class="bq-tag">BQ 8</div>
         <p class="question">Which activities are never or rarely chosen when creating open tables?</p>
         <div id="bq8"></div>
+      </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 10</div>
+        <p class="question">In which match score range are match proposals most often rejected?</p>
+        <div id="bq10"></div>
       </div>
     </div>
   </section>
@@ -514,6 +524,62 @@
     box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the range where the app is most often opened for the first time.</p>');
   }
 
+  // BQ 6: headline (the most preferred activity), the share of students who always repeat the same activity
+  // and horizontal bars with the most preferred activities (percentage of the open tables of the period)
+  function renderBq6(data) {
+    const box = document.getElementById('bq6');
+    if (!data || !data.ranking || data.ranking.length === 0) {
+      clearChart('bq6');
+      return showEmpty(box);
+    }
+
+    const rows = data.ranking;
+    const top = rows[0];
+    const repeat = data.repeatPercentage != null
+      ? `${pct(data.repeatPercentage)} of the students with 2 or more open tables always pick the same activity (${data.studentsRepeatingSameActivity} of ${data.studentsWithSeveralTables})`
+      : 'No student has created 2 or more open tables yet';
+
+    box.innerHTML = `
+      <div class="hero">${esc(top.activityName)}</div>
+      <div class="hero-sub">Most preferred activity · ${pct(top.percentage)} of the ${data.totalTables} open tables, chosen by ${top.students} of ${data.totalStudents} students</div>
+      <div id="bq6Chart"></div>
+      <p class="note">${esc(repeat)}.</p>`;
+
+    drawChart('bq6', newCanvas(document.getElementById('bq6Chart'), barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.activityName),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map((r, i) => i === 0 ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 30,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 50 } },
+        scales: {
+          x: { min: 0, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Open tables: ${r.tables} (${pct(r.percentage)})`, `Students: ${r.students}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   // BQ 5: column chart by duration range, the lowest coverage highlighted
   function renderBq5(rows) {
     const box = document.getElementById('bq5');
@@ -672,6 +738,61 @@
       }
     });
     box.insertAdjacentHTML('beforeend', '<p class="note">Dark blue: never chosen · Light blue: rarely chosen (under 5% of the open tables) · Gray: chosen enough.</p>');
+  }
+
+  // BQ 10: headline (the score range with the highest rejection rate) and a column chart of the rejection rate per range
+  function renderBq10(rows) {
+    const box = document.getElementById('bq10');
+    if (!rows || rows.length === 0) {
+      clearChart('bq10');
+      return showEmpty(box);
+    }
+
+    // The backend sends the 5 ranges in natural order, the empty ones too, and marks the highest one
+    const highest = rows.find(r => r.highestRejection);
+    const total = rows.reduce((sum, r) => sum + r.total, 0);
+    const rejected = rows.reduce((sum, r) => sum + r.rejected, 0);
+
+    box.innerHTML = `
+      <div class="hero">${highest ? `${esc(highest.range)} points` : 'No rejections'}</div>
+      <div class="hero-sub">${highest
+        ? `Highest rejection rate · ${pct(highest.rejectionPercentage)} (${highest.rejected} of ${highest.total} proposals)`
+        : 'Nobody has rejected a proposal in this period'} · ${rejected} of ${total} answered proposals rejected</div>
+      <div id="bq10Chart"></div>`;
+
+    drawChart('bq10', newCanvas(document.getElementById('bq10Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.range),
+        datasets: [{
+          data: rows.map(r => r.rejectionPercentage),
+          backgroundColor: rows.map(r => r.highestRejection ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { title: { display: true, text: 'Match score (points)' }, grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Rejection rate: ${pct(r.rejectionPercentage)}`, `Rejected: ${r.rejected}`, `Answered: ${r.total}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the score range with the highest rejection rate. Only answered proposals (accepted, rejected or completed) count.</p>');
   }
 
   // BQ 11: horizontal bars ranked by number of students per building
@@ -907,8 +1028,10 @@
       renderBq3(data.mostAbandonedStep);
       renderBq4(data.appOpenDelay);
       renderBq5(data.gapCoverageByDuration);
+      renderBq6(data.preferredActivity);
       renderBq7(data.connectionMethods);
       renderBq8(data.unusedActivities);
+      renderBq10(data.rejectionByScoreRange);
       renderBq11(data.buildingsByGapPresence);
       renderBq12(data.unmatchedFreeTimeByCareerSemester);
       renderBq13(data.interestsByLargestFreeGroup);

@@ -3,6 +3,8 @@ package com.backend.gapfinder.view.dto.responses;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
@@ -24,6 +26,10 @@ public class AnalyticsDashboardResponseDTO {
     // BQ 4: minutes after a gap starts at which the app is first opened, per range (null if there are no finished gaps)
     private AppOpenDelayStatsDTO appOpenDelay;
 
+    // BQ 6: activities most chosen when creating open tables and the share of students who always repeat the same one
+    // (null if there are no open tables with activity in the period)
+    private PreferredActivityStatsDTO preferredActivity;
+
     // BQ 5: match coverage per gap duration, lowest coverage first
     private List<GapCoverageResponseDTO> gapCoverageByDuration;
 
@@ -41,4 +47,7 @@ public class AnalyticsDashboardResponseDTO {
 
     // BQ 8: all the activities from the least to the most chosen in open tables (empty if there are no activities)
     private List<UnusedActivityStatsDTO> unusedActivities;
+
+    // BQ 10: rejection rate of the 5 match score ranges in natural order, one marked as the highest (empty if there are no answered matches)
+    private List<RejectionByScoreRangeDTO> rejectionByScoreRange;
 }

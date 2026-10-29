@@ -1,6 +1,7 @@
 package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
@@ -15,6 +16,9 @@ import java.util.List;
 // Response with the answers of all the business questions, used by the analytics dashboard
 @Data
 public class AnalyticsDashboardResponseDTO {
+
+    // BQ 2: location updates per hour received from the students while inside a building (null if there are none)
+    private LocationUpdateRateStatsDTO locationUpdatesPerHour;
 
     // BQ 3: creation step with the highest abandonment rate (null if there are no abandonments)
     private OpenTableAbandonmentStatsBasicDTO mostAbandonedStep;

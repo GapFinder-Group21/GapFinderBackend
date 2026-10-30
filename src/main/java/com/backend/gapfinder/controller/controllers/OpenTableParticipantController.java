@@ -1,7 +1,9 @@
 package com.backend.gapfinder.controller.controllers;
 
+import com.backend.gapfinder.view.dto.OpenTableListDTO;
 import com.backend.gapfinder.view.dto.OpenTableParticipantBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableParticipantCompleteDTO;
+import com.backend.gapfinder.model.models.OpenTableModel;
 import com.backend.gapfinder.model.models.OpenTableParticipantModel;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.OpenTableParticipantService;
@@ -92,6 +94,16 @@ public class OpenTableParticipantController {
     public List<OpenTableParticipantCompleteDTO> getByOpenTable(@PathVariable Long tableId) {
         List<OpenTableParticipantModel> participants = openTableParticipantService.getByOpenTable(tableId);
         return modelMapper.map(participants, new TypeToken<List<OpenTableParticipantCompleteDTO>>() {}.getType());
+    }
+
+    // The open tables a user joined (one request instead of one per table)
+    // GET /open-table-participants/user/{userId}
+    @GetMapping("/user/{userId}")
+    public List<OpenTableListDTO> getJoinedOpenTables(@PathVariable Long userId, @AuthenticationPrincipal UserModel me) {
+        // Only the user can see which tables they joined
+        AccessGuard.requireSameUser(me, userId);
+        List<OpenTableModel> tables = openTableParticipantService.getJoinedOpenTables(userId);
+        return modelMapper.map(tables, new TypeToken<List<OpenTableListDTO>>() {}.getType());
     }
 
     // A user joins an open table

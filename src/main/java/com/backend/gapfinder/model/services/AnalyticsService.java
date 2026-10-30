@@ -567,11 +567,12 @@ public class AnalyticsService {
     // Sofia Morato: Which activities are never or rarely chosen when creating open
     // tables?
 
-    // An activity chosen in less than this percentage of the open tables of the
-    // period is RARELY chosen
-    // 5 % is a simple, easy to explain cut: an activity that gets less than 1 of
-    // every 20 open tables is clearly ignored
-    private static final double RARELY_CHOSEN_THRESHOLD_PERCENT = 5.0;
+    // An activity is RARELY chosen when its share of the open tables is less than this
+    // fraction of an even share (100 % / number of activities). With a fixed 5 % and 49
+    // activities almost all of them would be RARELY even if the tables were spread evenly
+    // (an even share is 2.04 %), so the cut depends on how many activities there are:
+    // half of the even share, for example 1.02 % with 49 activities
+    private static final double RARELY_CHOSEN_FRACTION_OF_EVEN_SHARE = 0.5;
 
     // Days used as the default start date, the same as the dashboard
     private static final int DEFAULT_ACTIVITY_DAYS_BACK = 30;
@@ -602,8 +603,9 @@ public class AnalyticsService {
                 .sum();
 
         // The query already sorts them from the least to the most chosen
+        int activitiesCount = rows.size();
         List<UnusedActivityStatsDTO> stats = rows.stream()
-                .map(row -> toUnusedActivityStats(row, totalTables))
+                .map(row -> toUnusedActivityStats(row, totalTables, activitiesCount))
                 .limit(limit != null ? limit : Long.MAX_VALUE)
                 .toList();
 
@@ -613,18 +615,10 @@ public class AnalyticsService {
 
     // Builds the statistics of an activity with its share of the open tables and
     // its classification
-    private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables) {
+    private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables,
+                                                         int activitiesCount) {
         long tables = row.getOpenTables() != null ? row.getOpenTables() : 0L;
         double percentage = totalTables == 0 ? 0.0 : (double) tables / totalTables * 100;
-
-        String classification;
-        if (tables == 0) {
-            classification = "NEVER";
-        } else if (percentage < RARELY_CHOSEN_THRESHOLD_PERCENT) {
-            classification = "RARELY";
-        } else {
-            classification = "OK";
-        }
 
         return new UnusedActivityStatsDTO(
                 row.getActivityId(),
@@ -632,7 +626,20 @@ public class AnalyticsService {
                 row.getInterestName(),
                 tables,
                 percentage,
-                classification);
+                classifyActivity(tables, percentage, activitiesCount));
+    }
+
+    // NEVER: no open table used it. RARELY: its share is under half of an even share.
+    // OK: everything else
+    static String classifyActivity(long tables, double percentage, int activitiesCount) {
+        if (tables == 0) {
+            return "NEVER";
+        }
+        double evenShare = activitiesCount == 0 ? 0.0 : 100.0 / activitiesCount;
+        if (percentage < RARELY_CHOSEN_FRACTION_OF_EVEN_SHARE * evenShare) {
+            return "RARELY";
+        }
+        return "OK";
     }
 
     // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================

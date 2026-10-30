@@ -53,6 +53,7 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
     // BQ 10 INDIVIDUAL TYPE 3
     // Answered matches (ACCEPTED, COMPLETED or REJECTED by a user) starting since :since per range of score, with how many were rejected
     // The score is minutes of overlap (1 point per minute) plus bonuses of at most 35, so the ranges go up by 50 points
+    // :since filters by when the request was made (created_at); old rows without it fall back to start_time
     // A REJECTED match only counts if responded_at is set: without it nobody answered (it expired or the sender cancelled it)
     // A match that is still PENDING has no answer yet, and a null score has no range, so all of them are left out
     // Ranges without matches do not appear in the result (the service adds them with 0)
@@ -69,7 +70,7 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
         FROM matches m
         WHERE (m.status IN ('ACCEPTED', 'COMPLETED') OR (m.status = 'REJECTED' AND m.responded_at IS NOT NULL))
           AND m.score IS NOT NULL
-          AND m.start_time >= :since
+          AND COALESCE(m.created_at, m.start_time) >= :since
         GROUP BY 1
         """, nativeQuery = true)
     List<RejectionByScoreRangeProjection> countRejectionsByScoreRange(@Param("since") LocalDateTime since);

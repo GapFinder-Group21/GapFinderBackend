@@ -248,6 +248,7 @@ public class MatchService {
         match.setEndTime(meeting[1]);
         match.setScore(score);
         match.setStatus(MatchStatusEnum.PENDING);
+        match.setCreatedAt(LocalDateTime.now());
 
         MatchModel saved = matchRepository.save(match);
 

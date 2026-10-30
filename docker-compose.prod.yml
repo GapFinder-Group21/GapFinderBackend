@@ -1,0 +1,43 @@
+# Production override. Use it together with the base file:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+services:
+
+  db:
+    # No published ports: only the app can reach the database, inside the Docker network
+    ports: !reset []
+
+  # pgAdmin uses admin/admin and must never be public
+  pgadmin:
+    profiles: ["disabled"]
+    ports: !reset []
+
+  app:
+    # No published ports: only Caddy can reach the app
+    ports: !reset []
+    restart: unless-stopped
+    environment:
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:?Set GOOGLE_CLIENT_ID in .env}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?Set GOOGLE_CLIENT_SECRET in .env}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:?Set GOOGLE_REDIRECT_URI in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set a new long random JWT_SECRET in .env}
+
+  caddy:
+    image: caddy:2
+    container_name: gapfinder-caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Keeps the HTTPS certificates between restarts
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

@@ -82,6 +82,13 @@ public class MatchService {
         return matchRepository.findAll();
     }
 
+    // Get the matches of a user, as proposer or as acceptor
+    @Transactional(readOnly = true)
+    public List<MatchModel> getByUser(Long userId) {
+        log.info("Inicia proceso de consultar los matches del usuario con id = {}", userId);
+        return matchRepository.findByProposerGapUserIdOrAcceptorGapUserId(userId, userId);
+    }
+
     // Create a new match
     // A new match is a match request: it starts PENDING and the meeting time is the overlap of both gaps
     @Transactional
@@ -302,6 +309,28 @@ public class MatchService {
                 saved.getId()));
 
         log.info("Termina proceso de rechazo del match con id = {}", matchId);
+        return saved;
+    }
+
+    // The proposer cancels their own request while nobody has answered it
+    // There is no CANCELLED status, so the request ends as REJECTED (the receiver is not notified)
+    @Transactional
+    public MatchModel cancelMatch(Long matchId, Long userId) {
+        log.info("Inicia proceso de cancelación del match con id = {} por el usuario = {}", matchId, userId);
+
+        MatchModel match = getById(matchId);
+
+        if (!match.getProposerGap().getUser().getId().equals(userId)) {
+            throw new ForbiddenException("Solo quien envió la solicitud puede cancelarla");
+        }
+        if (match.getStatus() != MatchStatusEnum.PENDING) {
+            throw new IllegalStateException("Solo se puede cancelar una solicitud que sigue pendiente");
+        }
+
+        match.setStatus(MatchStatusEnum.REJECTED);
+        MatchModel saved = matchRepository.save(match);
+
+        log.info("Termina proceso de cancelación del match con id = {}", matchId);
         return saved;
     }
 

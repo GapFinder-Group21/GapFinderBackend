@@ -1,0 +1,5 @@
+# {$DOMAIN} is read from the DOMAIN variable of the caddy container (see docker-compose.prod.yml).
+# Caddy gets and renews the HTTPS certificate by itself.
+{$DOMAIN} {
+	reverse_proxy app:8080
+}

@@ -71,9 +71,22 @@ public class WeeklyGapService {
         UserModel user = userService.getById(userId);
         List<ClassBlockModel> classBlocks = classBlockRepository.findByUserId(userId);
 
-        // Gaps already used in a match are kept, the rest are replaced by the new calculation
-        List<GapModel> keptGaps = replaceUnmatchedGaps(userId, weekStart);
+        // Gaps already used in a match are never touched. The other ones of the week are updated in place:
+        // a gap that is still free keeps its id (the app and other users keep pointing to it), only the
+        // gaps that no longer exist are deleted and only the new ones are inserted
+        List<GapModel> existing = gapRepository.findByUserAndStartBetween(
+                userId, weekStart.atStartOfDay(), weekStart.plusWeeks(1).atStartOfDay());
+        List<GapModel> keptGaps = new ArrayList<>();
+        List<GapModel> unmatched = new ArrayList<>();
+        for (GapModel gap : existing) {
+            if (matchRepository.existsByProposerGapIdOrAcceptorGapId(gap.getId(), gap.getId())) {
+                keptGaps.add(gap);
+            } else {
+                unmatched.add(gap);
+            }
+        }
 
+        List<GapModel> current = new ArrayList<>();
         List<GapModel> newGaps = new ArrayList<>();
         for (DayOfWeekEnum day : DayOfWeekEnum.values()) {
             LocalDate date = weekStart.plusDays(day.ordinal());
@@ -92,6 +105,17 @@ public class WeeklyGapService {
                     continue;
                 }
 
+                // The same free time as before: the gap stays as it is
+                GapModel same = unmatched.stream()
+                        .filter(g -> g.getStartTime().equals(start) && g.getEndTime().equals(end))
+                        .findFirst()
+                        .orElse(null);
+                if (same != null) {
+                    unmatched.remove(same);
+                    current.add(same);
+                    continue;
+                }
+
                 GapModel gap = new GapModel();
                 gap.setUser(user);
                 gap.setStartTime(start);
@@ -100,11 +124,14 @@ public class WeeklyGapService {
             }
         }
 
+        // What is left in unmatched is free time that does not exist anymore
+        gapRepository.deleteAll(unmatched);
         List<GapModel> saved = gapRepository.saveAll(newGaps);
+        current.addAll(saved);
 
-        log.info("Termina proceso de generación de gaps del usuario {}: {} nuevos, {} conservados por tener match",
-                userId, saved.size(), keptGaps.size());
-        return saved;
+        log.info("Termina proceso de generación de gaps del usuario {}: {} nuevos, {} sin cambios, {} eliminados, {} conservados por tener match",
+                userId, saved.size(), current.size() - saved.size(), unmatched.size(), keptGaps.size());
+        return current;
     }
 
     // Ids of the users that have a class schedule, used by the weekly job
@@ -148,25 +175,6 @@ public class WeeklyGapService {
         }
 
         return gaps;
-    }
-
-    // Delete the week's gaps that have no match and return the ones that must be kept
-    private List<GapModel> replaceUnmatchedGaps(Long userId, LocalDate weekStart) {
-        List<GapModel> existing = gapRepository.findByUserAndStartBetween(
-                userId, weekStart.atStartOfDay(), weekStart.plusWeeks(1).atStartOfDay());
-
-        List<GapModel> kept = new ArrayList<>();
-        List<GapModel> removable = new ArrayList<>();
-        for (GapModel gap : existing) {
-            if (matchRepository.existsByProposerGapIdOrAcceptorGapId(gap.getId(), gap.getId())) {
-                kept.add(gap);
-            } else {
-                removable.add(gap);
-            }
-        }
-
-        gapRepository.deleteAll(removable);
-        return kept;
     }
 
     private static LocalTime max(LocalTime a, LocalTime b) {

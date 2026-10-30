@@ -148,8 +148,11 @@ public class AnalyticsController {
     @GetMapping("/app-open-delay/user/{userId}")
     public AppOpenDelayStatsDTO getAppOpenDelayForUser(
             @PathVariable Long userId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since,
+            @AuthenticationPrincipal UserModel me) {
 
+        // The reminder time of a user is personal: only the user can ask for it
+        AccessGuard.requireSameUser(me, userId);
         return analyticsService.getAppOpenDelay(userId, since);
     }
 

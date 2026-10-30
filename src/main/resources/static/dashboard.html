@@ -742,7 +742,9 @@
         }
       }
     });
-    box.insertAdjacentHTML('beforeend', '<p class="note">Dark blue: never chosen · Light blue: rarely chosen (under 5% of the open tables) · Gray: chosen enough.</p>');
+    // Rarely chosen = under half of an even share of the open tables (100% / number of activities)
+    const rareLimit = (50 / rows.length).toFixed(2);
+    box.insertAdjacentHTML('beforeend', `<p class="note">Dark blue: never chosen · Light blue: rarely chosen (under ${rareLimit}% of the open tables, half of an even share among ${rows.length} activities) · Gray: chosen enough.</p>`);
   }
 
   // BQ 10: headline (the score range with the highest rejection rate) and a column chart of the rejection rate per range

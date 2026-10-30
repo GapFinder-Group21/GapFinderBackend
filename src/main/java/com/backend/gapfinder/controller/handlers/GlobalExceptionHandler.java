@@ -1,5 +1,6 @@
 package com.backend.gapfinder.controller.handlers;
 
+import com.backend.gapfinder.model.exceptions.AlreadyDoneException;
 import com.backend.gapfinder.model.exceptions.DuplicateClassBlockException;
 import com.backend.gapfinder.model.exceptions.ForbiddenException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
@@ -8,8 +9,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
@@ -63,10 +66,30 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
-    // Operación no permitida por estado del recurso → 409
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<String> handleConflict(IllegalStateException ex) {
+    // La acción ya estaba hecha (por ejemplo, ya es participante) → 409.
+    // Solo este caso responde 409: la app lo cuenta como "hecho" y no lo reintenta
+    @ExceptionHandler(AlreadyDoneException.class)
+    public ResponseEntity<String> handleAlreadyDone(AlreadyDoneException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
+    }
+
+    // Operación rechazada por una regla de negocio (mesa llena, ya terminó, tiempo en común pasó...) → 422.
+    // La app la muestra al usuario y no la cuenta como hecha
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<String> handleBusinessRule(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getMessage());
+    }
+
+    // Parámetro con un formato que no se puede leer (fecha sin hora, número inválido) → 400
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<String> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body("El parámetro '" + ex.getName() + "' no tiene un formato válido");
+    }
+
+    // Falta un parámetro obligatorio → 400
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<String> handleMissingParameter(MissingServletRequestParameterException ex) {
+        return ResponseEntity.badRequest().body("Falta el parámetro '" + ex.getParameterName() + "'");
     }
 
     // CAPTURA ERRORES DE BASE DE DATOS (Campos null, duplicados, etc.) → 400

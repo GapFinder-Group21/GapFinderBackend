@@ -7,6 +7,7 @@ import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 import com.backend.gapfinder.model.events.MatchEvent;
 import com.backend.gapfinder.model.exceptions.ForbiddenException;
+import com.backend.gapfinder.model.exceptions.AlreadyDoneException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.GapModel;
 import com.backend.gapfinder.model.models.MatchModel;
@@ -235,7 +236,7 @@ public class MatchService {
 
         // Only one live request between the same two gaps
         if (matchRepository.existsBetweenGapsAndStatusIn(proposerGapId, acceptorGapId, OPEN_REQUEST_STATUSES)) {
-            throw new IllegalStateException("Ya existe una solicitud de match entre estos gaps");
+            throw new AlreadyDoneException("Ya existe una solicitud de match entre estos gaps");
         }
 
         validateScore(proposerGap, acceptorGap, score);

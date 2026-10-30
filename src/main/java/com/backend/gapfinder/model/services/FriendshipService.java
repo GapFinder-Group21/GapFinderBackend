@@ -4,6 +4,7 @@ import com.backend.gapfinder.model.enums.FriendshipStatusEnum;
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 import com.backend.gapfinder.model.events.FriendshipEvent;
 import com.backend.gapfinder.model.exceptions.ForbiddenException;
+import com.backend.gapfinder.model.exceptions.AlreadyDoneException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.FriendshipModel;
 import com.backend.gapfinder.model.models.UserModel;
@@ -65,7 +66,7 @@ public class FriendshipService {
         boolean alreadyLinked = existing.stream()
                 .anyMatch(f -> f.getStatus() != FriendshipStatusEnum.REJECTED);
         if (alreadyLinked) {
-            throw new IllegalStateException("Ya existe una solicitud de amistad o una amistad entre estos usuarios");
+            throw new AlreadyDoneException("Ya existe una solicitud de amistad o una amistad entre estos usuarios");
         }
 
         // A rejected request does not block a new one: the old record is replaced

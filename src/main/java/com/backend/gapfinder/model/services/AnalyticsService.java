@@ -425,6 +425,12 @@ public class AnalyticsService {
         PreferredActivityTotalsProjection totals = openTableRepository.findPreferredActivityTotals(start);
         long totalTables = totals.getTables() != null ? totals.getTables() : 0L;
         if (totalTables == 0) {
+            // A user without tables in the period is a normal answer (no favorite yet), not an error;
+            // only the dashboard has nothing to show
+            if (userId != null) {
+                log.info("Termina proceso de consultar la actividad preferida: sin open tables desde {}", start);
+                return new PreferredActivityStatsDTO(List.of(), 0L, 0L, 0L, 0L, null, null);
+            }
             throw new NotFoundException("No hay open tables con actividad creadas desde la fecha indicada");
         }
 

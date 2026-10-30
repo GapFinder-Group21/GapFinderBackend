@@ -41,6 +41,9 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
     // Get the matches with a given status whose acceptor gap belongs to the given user
     List<MatchModel> findByAcceptorGapUserIdAndStatus(Long userId, MatchStatusEnum status);
 
+    // Get the matches of a user, as proposer or as acceptor
+    List<MatchModel> findByProposerGapUserIdOrAcceptorGapUserId(Long proposerUserId, Long acceptorUserId);
+
     // Check if a gap is used by any match, as proposer or acceptor
     boolean existsByProposerGapIdOrAcceptorGapId(Long proposerGapId, Long acceptorGapId);
 

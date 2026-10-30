@@ -31,19 +31,28 @@ public class MatchController {
         this.modelMapper = modelMapper;
     }
 
-    // Get a match by its id
+    // Get a match by its id; only the two users of the match can see it
     // GET /matches/{id}
     @GetMapping("/{id}")
-    public MatchCompleteDTO getMatch(@PathVariable Long id) {
+    public MatchCompleteDTO getMatch(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
         MatchModel match = matchService.getById(id);
+        requireParticipant(match, me);
         return modelMapper.map(match, MatchCompleteDTO.class);
     }
 
-    // Get all matches
+    // Get the matches of the authenticated user (matches of other users carry their email and phone)
     // GET /matches
     @GetMapping
-    public List<MatchCompleteDTO> getAll() {
-        List<MatchModel> matches = matchService.getAll();
+    public List<MatchCompleteDTO> getAll(@AuthenticationPrincipal UserModel me) {
+        return getByUser(me.getId(), me);
+    }
+
+    // Get the matches of a user, as proposer or as acceptor
+    // GET /matches/user/{userId}
+    @GetMapping("/user/{userId}")
+    public List<MatchCompleteDTO> getByUser(@PathVariable Long userId, @AuthenticationPrincipal UserModel me) {
+        AccessGuard.requireSameUser(me, userId);
+        List<MatchModel> matches = matchService.getByUser(userId);
         return modelMapper.map(matches, new TypeToken<List<MatchCompleteDTO>>() {}.getType());
     }
 
@@ -54,8 +63,11 @@ public class MatchController {
             @PathVariable Long gapId,
             @RequestParam(defaultValue = "false") boolean useSameCareer,
             @RequestParam(defaultValue = "false") boolean useSharedInterests,
-            @RequestParam(defaultValue = "false") boolean useEffort) {
+            @RequestParam(defaultValue = "false") boolean useEffort,
+            @AuthenticationPrincipal UserModel me) {
 
+        // Only the owner of the gap can look for candidates for it
+        AccessGuard.requireSameUser(me, gapService.getById(gapId).getUser().getId());
         return matchService.findCandidates(gapId, useSameCareer, useSharedInterests, useEffort);
     }
 
@@ -102,6 +114,14 @@ public class MatchController {
         AccessGuard.requireSameUser(me, userId);
 
         MatchModel match = matchService.rejectMatch(id, userId);
+        return modelMapper.map(match, MatchCompleteDTO.class);
+    }
+
+    // Cancel a request the user sent while it is still pending (it ends as REJECTED)
+    // POST /matches/57/cancel
+    @PostMapping("/{id}/cancel")
+    public MatchCompleteDTO cancelMatch(@PathVariable Long id, @AuthenticationPrincipal UserModel me) {
+        MatchModel match = matchService.cancelMatch(id, me.getId());
         return modelMapper.map(match, MatchCompleteDTO.class);
     }
 

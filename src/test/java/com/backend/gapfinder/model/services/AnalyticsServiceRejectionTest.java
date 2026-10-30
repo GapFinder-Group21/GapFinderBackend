@@ -81,12 +81,42 @@ class AnalyticsServiceRejectionTest {
 
     @Test
     void theFirstRangeWinsATie() {
-        queryReturns(row("50-100", 10, 5), row("150-200", 4, 2));
+        queryReturns(row("50-100", 10, 5), row("150-200", 6, 3));
 
         List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
 
         assertTrue(result.get(1).highestRejection());
         assertFalse(result.get(3).highestRejection());
+    }
+
+    @Test
+    void aRangeWithFewerThanFiveAnsweredIsNotHighlightedEvenWithTheHighestRate() {
+        queryReturns(row("0-50", 1, 1), row("100-150", 50, 40));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertEquals(100.0, result.get(0).rejectionPercentage());
+        assertFalse(result.get(0).highestRejection());
+        assertTrue(result.get(2).highestRejection());
+    }
+
+    @Test
+    void aRangeWithExactlyFiveAnsweredCanBeHighlighted() {
+        queryReturns(row("0-50", 5, 5), row("100-150", 50, 40));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertTrue(result.get(0).highestRejection());
+        assertFalse(result.get(2).highestRejection());
+    }
+
+    @Test
+    void marksNoRangeWhenAllHaveFewerThanFiveAnswered() {
+        queryReturns(row("0-50", 1, 1), row("50-100", 4, 2));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertTrue(result.stream().noneMatch(RejectionByScoreRangeDTO::highestRejection));
     }
 
     @Test

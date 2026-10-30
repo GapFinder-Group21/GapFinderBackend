@@ -653,6 +653,9 @@ public class AnalyticsService {
     // Days used as the default start date, the same as the dashboard
     private static final int DEFAULT_REJECTION_DAYS_BACK = 30;
 
+    // A range can only be highlighted with at least this many answered proposals
+    private static final long MIN_ANSWERED_TO_HIGHLIGHT = 5;
+
     // Rejection rate of the 5 score ranges, in natural order (the empty ones too), marking the one with the highest rate
     // It decides if the scoring algorithm has to be adjusted: a range that is rejected much more than the others scores wrong
     // since: optional, last 30 days if null
@@ -681,9 +684,10 @@ public class AnalyticsService {
             throw new NotFoundException("No hay matches respondidos desde la fecha indicada");
         }
 
-        // Highest rate among the ranges with rejections (the first one in natural order wins a tie)
+        // Highest rate among the ranges with rejections and enough answered proposals to be reliable
+        // (1 of 1 rejected is not more meaningful than 40 of 50); the first one in natural order wins a tie
         String highestRange = ranges.stream()
-                .filter(stat -> stat.rejected() > 0)
+                .filter(stat -> stat.rejected() > 0 && stat.total() >= MIN_ANSWERED_TO_HIGHLIGHT)
                 .max(Comparator.comparingDouble(RejectionByScoreRangeDTO::rejectionPercentage))
                 .map(RejectionByScoreRangeDTO::range)
                 .orElse(null);

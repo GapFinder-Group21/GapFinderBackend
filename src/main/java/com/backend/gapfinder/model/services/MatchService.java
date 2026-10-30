@@ -248,6 +248,7 @@ public class MatchService {
         match.setEndTime(meeting[1]);
         match.setScore(score);
         match.setStatus(MatchStatusEnum.PENDING);
+        match.setCreatedAt(LocalDateTime.now());
 
         MatchModel saved = matchRepository.save(match);
 
@@ -279,6 +280,7 @@ public class MatchService {
         validateGapsAreFree(match.getProposerGap(), match.getAcceptorGap());
 
         match.setStatus(MatchStatusEnum.ACCEPTED);
+        match.setRespondedAt(LocalDateTime.now());
         MatchModel saved = matchRepository.save(match);
 
         eventPublisher.publishEvent(new MatchEvent(
@@ -301,6 +303,7 @@ public class MatchService {
         validatePending(match);
 
         match.setStatus(MatchStatusEnum.REJECTED);
+        match.setRespondedAt(LocalDateTime.now());
         MatchModel saved = matchRepository.save(match);
 
         eventPublisher.publishEvent(new MatchEvent(
@@ -420,6 +423,7 @@ public class MatchService {
 
     // Runs automatically every 5 minutes to close the matches whose meeting time already ended:
     // accepted ones become COMPLETED and pending ones that nobody answered become REJECTED
+    // Those ones keep respondedAt null, so BQ 10 can tell "nobody answered" from "the user rejected"
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional
     public void completeExpiredMatches() {

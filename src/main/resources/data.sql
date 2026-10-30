@@ -14106,6 +14106,11 @@ FROM (VALUES
 JOIN users u ON u.email = v.email
 WHERE (SELECT go FROM seed_run)
 AND NOT EXISTS (SELECT 1 FROM refresh_tokens x WHERE x.token = v.token);
+-- The rejected matches of the seed were answered by the student (BQ 10 ignores the rejected ones nobody answered)
+UPDATE matches m SET responded_at = LEAST(m.start_time - make_interval(hours => (m.id % 70)::int + 2)
+                                          + make_interval(mins => (m.id % 300)::int + 10), LOCALTIMESTAMP)
+FROM seed_matches s
+WHERE s.id = m.id AND m.status = 'REJECTED' AND (SELECT go FROM seed_run);
 -- ---------- temporary tables cleanup
 DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;
@@ -14183,11 +14188,13 @@ pairs AS (
     WHERE p.rn % 2 = 1
       AND LEAST(p.free_to, a.free_to) - GREATEST(p.free_from, a.free_from) >= INTERVAL '30 minutes'
 )
-INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status)
+INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status, responded_at)
 SELECT pr.proposer_gap_id, pr.acceptor_gap_id, pr.start_time,
     LEAST(pr.free_to, pr.start_time + make_interval(mins => (ARRAY[60, 90, 120, 120, 120])[pr.h % 5 + 1])),
     (60 + pr.h % 190)::float8,
-    CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END
+    CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END,
+    -- The rejected ones were answered by the student (BQ 10 ignores the rejected ones nobody answered)
+    CASE WHEN pr.h % 100 < 12 THEN pr.start_time - INTERVAL '1 hour' + make_interval(mins => pr.h % 50) END
 FROM pairs pr;
 -- ---------- app sessions (openings of the app) for the BQ 4 (How long after a gap starts do students open the app?)
 -- Runs only while app_sessions is empty, so it does not duplicate rows on every startup.

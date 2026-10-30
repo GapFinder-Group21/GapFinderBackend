@@ -84,6 +84,17 @@ public class UserController {
         return modelMapper.map(updated, UserBasicDTO.class);
     }
 
+    // Remove an interest from a user (204 even if the user did not have it)
+    // DELETE /users/{userId}/interests/{interestId}
+    @DeleteMapping("/{userId}/interests/{interestId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeInterest(@PathVariable Long userId, @PathVariable Long interestId,
+                               @AuthenticationPrincipal UserModel me) {
+        // A user can only change their own interests
+        AccessGuard.requireSameUser(me, userId);
+        userService.removeInterest(userId, interestId);
+    }
+
     // Search users by name
     // GET /users/search?name={name}
     @GetMapping("/search")

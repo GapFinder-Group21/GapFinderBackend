@@ -21,12 +21,16 @@ These keys are **private** and are not in the repository. Ask a team member to s
 
 ## 1. Start the database and the backend
 
-In the backend folder, create a file called `.env` with the Google credentials:
+In the backend folder, copy `.env.example` to `.env` and put the real values (`.env` is never committed):
 
 ```env
 GOOGLE_CLIENT_ID=your-client-id
 GOOGLE_CLIENT_SECRET=your-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:8080/google/callback
+JWT_SECRET=a-long-random-value
 ```
+
+If you only keep the dummy values of `.env.example`, the backend still starts, but the **Google Calendar import does not work** (Google rejects the dummy keys). `GOOGLE_REDIRECT_URI` is the address where Google sends the browser after the login; for a public server it must be `https://<domain>/google/callback`. `JWT_SECRET` signs the login tokens: always use your own value in production.
 
 Then run:
 
@@ -82,4 +86,29 @@ flutter run
 
 **Phone over USB:** run `adb reverse tcp:8080 tcp:8080` so the phone can reach the backend without Wi-Fi. You have to run it again every time you unplug the phone.
 
+## Deploy (public server with HTTPS)
 
+Plan: a small Linux server (Ubuntu 22.04/24.04, at least 2 GB of RAM) that runs the same `docker compose`, plus a Caddy container that gets the HTTPS certificate by itself. `docker-compose.prod.yml` changes the base file for production: the database and the app have **no published ports**, pgAdmin is **not started**, and Caddy is the only one that listens on ports 80 and 443.
+
+1. In the provider firewall open **only** ports 22, 80 and 443. Point a domain (or a free DuckDNS subdomain) to the public IP of the server.
+2. Install Docker and get the code:
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER      # then log out and log in again
+git clone https://github.com/GapFinder-Group21/GapFinderBackend.git
+cd GapFinderBackend
+```
+
+3. Create the `.env` file (start from `cp .env.example .env`) with the real `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI=https://<domain>/google/callback`, `DOMAIN=<domain>` and a **new** `JWT_SECRET` (`openssl rand -base64 48`).
+4. Start everything:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f app   # wait for "Started GapfinderApplication"
+```
+
+5. Check it: `curl -i https://<domain>/` must answer (even a 401 means the request arrived), and the app must work from a phone with mobile data.
+6. The same Google redirect address must be registered in Google Cloud Console (Credentials > OAuth client > Authorized redirect URIs).
+
+Data lives in the Docker volumes `gapfinder-postgis-data` (database), `gapfinder-uploads` (open table photos) and `caddy-data` (certificates).

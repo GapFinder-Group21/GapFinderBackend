@@ -3,14 +3,17 @@ package com.backend.gapfinder.model.services;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.InterestRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
@@ -40,7 +43,8 @@ class AnalyticsServicePreferredActivityTest {
         userService = mock(UserService.class);
         service = new AnalyticsService(mock(OpenTableAbandonmentService.class), mock(GapRepository.class),
                 mock(UserLocationLogRepository.class), mock(MatchRepository.class), openTableRepository,
-                mock(AppSessionRepository.class), userService);
+                mock(AppSessionRepository.class), userService, mock(ActivityRepository.class),
+                mock(InterestRepository.class));
     }
 
     // The query rows are plain objects (not mocks), so they can be built inside a thenReturn call
@@ -128,6 +132,18 @@ class AnalyticsServicePreferredActivityTest {
         when(openTableRepository.findPreferredActivityTotals(SINCE)).thenReturn(totals(0, 0, 0, 0));
 
         assertThrows(NotFoundException.class, () -> service.getPreferredActivity(null, SINCE));
+    }
+
+    @Test
+    void userWithNoOpenTablesAtAllGetsAnEmptyAnswerInsteadOfNotFound() {
+        when(openTableRepository.findPreferredActivityTotals(SINCE)).thenReturn(totals(0, 0, 0, 0));
+
+        PreferredActivityStatsDTO result = service.getPreferredActivity(7L, SINCE);
+
+        assertNull(result.userPreferredActivity());
+        assertTrue(result.ranking().isEmpty());
+        assertEquals(0L, result.totalTables());
+        verify(userService).getById(7L);
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.InterestRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
@@ -36,7 +37,8 @@ class AnalyticsServiceRejectionTest {
         service = new AnalyticsService(
                 mock(OpenTableAbandonmentService.class), mock(GapRepository.class),
                 mock(UserLocationLogRepository.class), matchRepository, mock(OpenTableRepository.class),
-                mock(AppSessionRepository.class), mock(UserService.class), mock(ActivityRepository.class));
+                mock(AppSessionRepository.class), mock(UserService.class), mock(ActivityRepository.class),
+                mock(InterestRepository.class));
     }
 
     private static RejectionByScoreRangeProjection row(String range, long total, long rejected) {

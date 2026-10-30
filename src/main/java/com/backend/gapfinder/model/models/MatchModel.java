@@ -48,4 +48,8 @@ public class MatchModel extends BaseModel {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MatchStatusEnum status;
+
+    // When a user accepted or rejected the request (null while pending, if it expired or if the sender cancelled it)
+    @Column(name = "responded_at", nullable = true)
+    private LocalDateTime respondedAt;
 }

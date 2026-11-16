@@ -14111,6 +14111,26 @@ UPDATE matches m SET responded_at = LEAST(m.start_time - make_interval(hours => 
                                           + make_interval(mins => (m.id % 300)::int + 10), LOCALTIMESTAMP)
 FROM seed_matches s
 WHERE s.id = m.id AND m.status = 'REJECTED' AND (SELECT go FROM seed_run);
+-- ---------- notification types (runs on every startup)
+-- Hibernate creates a CHECK with the values of the enum when it creates the table, and ddl-auto=update
+-- does not change it later, so a new type (MATCH_RATED) would be refused. The enum already limits the values
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+-- ---------- match ratings ("Mis matches")
+-- In some finished matches the acceptor already rated, and in fewer both did,
+-- so the demo shows matches to rate, rated ones and ones where the other is still missing
+INSERT INTO match_ratings (match_id, rater_id, rated_id, stars, comment, created_at)
+SELECT m.id, r.rater_id, r.rated_id,
+       3 + ((m.id + r.rater_id) % 3)::int,
+       (ARRAY[NULL, 'Muy buena charla', 'Llegó puntual', 'Buen plan para el hueco', 'Repetiría', NULL])[1 + ((m.id + r.rater_id) % 6)::int],
+       LEAST(m.end_time + make_interval(hours => (m.id % 20)::int + 1), LOCALTIMESTAMP)
+FROM matches m
+JOIN seed_matches s ON s.id = m.id
+JOIN gaps pg ON pg.id = m.proposer_gap_id
+JOIN gaps ag ON ag.id = m.acceptor_gap_id
+CROSS JOIN LATERAL (VALUES (ag.user_id, pg.user_id, m.id % 3 = 0),
+                           (pg.user_id, ag.user_id, m.id % 6 = 0)) AS r(rater_id, rated_id, rates)
+WHERE m.status = 'COMPLETED' AND r.rates AND (SELECT go FROM seed_run)
+ON CONFLICT DO NOTHING;
 -- ---------- temporary tables cleanup
 DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;

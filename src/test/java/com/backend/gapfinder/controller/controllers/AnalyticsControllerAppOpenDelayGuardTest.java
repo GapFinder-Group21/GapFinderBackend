@@ -16,7 +16,7 @@ import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-// The reminder time of a user (BQ 4) is personal, like the preferred activity (BQ 6)
+// The reminder time of a user (BQ 3) is personal, like the preferred activity (BQ 5)
 class AnalyticsControllerAppOpenDelayGuardTest {
 
     private AnalyticsService analyticsService;

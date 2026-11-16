@@ -1,6 +1,6 @@
 package com.backend.gapfinder.view.dto;
 
-// DTO with how often an activity is chosen when creating open tables (BQ 6)
+// DTO with how often an activity is chosen when creating open tables (BQ 5)
 public record PreferredActivityRankingBasicDTO(
 
     // Unique identifier of the activity

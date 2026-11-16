@@ -81,7 +81,7 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
             @Param("to") LocalDateTime to
     );
 
-    // BQ 12 INDIVIDUAL
+    // BQ 10 INDIVIDUAL
     // Free time and matched minutes per (career, semester) for the gaps between [from, to]
     // A gap's matched minutes are capped at its own duration (same rule as findCoverageByDurationBucket)
     @Query(value = """
@@ -117,7 +117,7 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
             @Param("to") LocalDateTime to
     );
 
-    // BQ 13 INDIVIDUAL
+    // BQ 11 INDIVIDUAL
     // Largest group of students sharing each interest who are free at the same time, for the gaps starting in [from, to)
     // The candidate moments are the gap starts: at each one, count the distinct students with the interest whose gap covers it
     @Query(value = """

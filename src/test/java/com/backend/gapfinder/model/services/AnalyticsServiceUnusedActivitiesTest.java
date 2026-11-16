@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-// BQ 8 type 3: NEVER, RARELY and OK. RARELY is relative to an even share, so it works with 49 activities
+// BQ 7 type 3: NEVER, RARELY and OK. RARELY is relative to an even share, so it works with 49 activities
 class AnalyticsServiceUnusedActivitiesTest {
 
     private ActivityRepository activityRepository;

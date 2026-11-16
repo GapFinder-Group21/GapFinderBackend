@@ -13249,13 +13249,13 @@ FROM (VALUES
 ) AS v(email)
 JOIN users u ON u.email = v.email AND u.current_building_id IS NOT NULL
 WHERE (SELECT go FROM seed_run);
--- ---------- high-frequency location logs for the BQ 2 (How many location updates per hour does the backend
+-- ---------- high-frequency location logs for the BQ 1 (How many location updates per hour does the backend
 -- receive from each student while they are inside a campus building?)
 -- The logs above arrive about every 11 minutes. This block adds visits where the app sent the location every
 -- 2 minutes (what the Kotlin app does while the Open Tables tab is open) or every minute (the 2-minute refresh plus
 -- the GPS changes), so the BQ shows students with different update rates.
 -- - Weekdays of the last two weeks, one visit per day for 1 of every 10 users, in a building that depends on the user.
--- - Skips the moments inside the user's gaps, so the BQ 11 and the favorite building (they only use logs inside gaps)
+-- - Skips the moments inside the user's gaps, so the BQ 9 and the favorite building (they only use logs inside gaps)
 --   do not change.
 -- - Runs only once, also on databases where the seed already ran: its timestamps carry 17 microseconds, a mark
 --   the other rows do not have.
@@ -14106,7 +14106,7 @@ FROM (VALUES
 JOIN users u ON u.email = v.email
 WHERE (SELECT go FROM seed_run)
 AND NOT EXISTS (SELECT 1 FROM refresh_tokens x WHERE x.token = v.token);
--- The rejected matches of the seed were answered by the student (BQ 10 ignores the rejected ones nobody answered)
+-- The rejected matches of the seed were answered by the student (BQ 8 ignores the rejected ones nobody answered)
 UPDATE matches m SET responded_at = LEAST(m.start_time - make_interval(hours => (m.id % 70)::int + 2)
                                           + make_interval(mins => (m.id % 300)::int + 10), LOCALTIMESTAMP)
 FROM seed_matches s
@@ -14140,7 +14140,7 @@ DROP TABLE IF EXISTS pg_temp.seed_run;
 -- The seed only creates the matches that already started when it is loaded, so the gaps that end
 -- afterwards would never get one. On every startup this creates the matches the seed users would have had
 -- in the gaps that already ended: 2-hour slots between 06:00 and 22:00, a user takes part in a slot with a
--- probability that depends on their career (BQ 12), and the users of a slot are paired by start time.
+-- probability that depends on their career (BQ 10), and the users of a slot are paired by start time.
 -- A user is skipped in a slot where they already have a match, so running it again creates nothing new.
 -- Only past matches (COMPLETED or REJECTED), no notifications.
 WITH seed_users AS (
@@ -14213,10 +14213,10 @@ SELECT pr.proposer_gap_id, pr.acceptor_gap_id, pr.start_time,
     LEAST(pr.free_to, pr.start_time + make_interval(mins => (ARRAY[60, 90, 120, 120, 120])[pr.h % 5 + 1])),
     (60 + pr.h % 190)::float8,
     CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END,
-    -- The rejected ones were answered by the student (BQ 10 ignores the rejected ones nobody answered)
+    -- The rejected ones were answered by the student (BQ 8 ignores the rejected ones nobody answered)
     CASE WHEN pr.h % 100 < 12 THEN pr.start_time - INTERVAL '1 hour' + make_interval(mins => pr.h % 50) END
 FROM pairs pr;
--- ---------- app sessions (openings of the app) for the BQ 4 (How long after a gap starts do students open the app?)
+-- ---------- app sessions (openings of the app) for the BQ 3 (How long after a gap starts do students open the app?)
 -- Runs only while app_sessions is empty, so it does not duplicate rows on every startup.
 -- For ~90% of the finished gaps the student opens the app once inside the gap, at a delay that depends on the
 -- gap (hash of its id) and on the student (user id % 4: some students open it faster than others);

@@ -23,7 +23,7 @@ import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 
-// BQ 10 filters by when the request was made, so the match has to store it when it is created
+// BQ 8 filters by when the request was made, so the match has to store it when it is created
 class MatchServiceCreatedAtTest {
 
     private static GapModel gap(Long gapId, Long userId, LocalDateTime start, LocalDateTime end) {
@@ -57,7 +57,7 @@ class MatchServiceCreatedAtTest {
         assertNotNull(saved.getCreatedAt());
         assertFalse(saved.getCreatedAt().isBefore(before));
         assertFalse(saved.getCreatedAt().isAfter(after));
-        // The meeting is tomorrow, but the request was made now: that is the date BQ 10 uses
+        // The meeting is tomorrow, but the request was made now: that is the date BQ 8 uses
         assertTrue(saved.getCreatedAt().isBefore(saved.getStartTime()));
     }
 }

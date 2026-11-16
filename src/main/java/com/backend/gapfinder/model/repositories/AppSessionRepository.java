@@ -16,7 +16,7 @@ import java.util.List;
 @Repository
 public interface AppSessionRepository extends JpaRepository<AppSessionModel, Long> {
 
-    // BQ 4 INDIVIDUAL
+    // BQ 3 INDIVIDUAL
     // Number of finished gaps starting since :since per range of minutes between the gap start and the FIRST app opening
     // The LEFT JOIN keeps the gaps without any opening (MIN is null), which fall in the 'No abrió' range
     // Ranges without gaps do not appear in the result (the service adds them with 0)
@@ -45,7 +45,7 @@ public interface AppSessionRepository extends JpaRepository<AppSessionModel, Lon
         """, nativeQuery = true)
     List<AppOpenDelayRangeProjection> countGapsByOpenDelayRange(@Param("since") LocalDateTime since);
 
-    // BQ 4 INDIVIDUAL
+    // BQ 3 INDIVIDUAL
     // Average minutes between the gap start and the first app opening, and gaps counted, for all users and for one user
     // Only the gaps where the app was opened are counted (AVG ignores the nulls); :userId can be null (no user columns)
     @Query(value = """

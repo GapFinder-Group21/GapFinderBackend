@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// BQ 6 type 2: the service only builds the answer from the query rows, so the repositories are mocked
+// BQ 5 type 2: the service only builds the answer from the query rows, so the repositories are mocked
 class AnalyticsServicePreferredActivityTest {
 
     private static final LocalDateTime SINCE = LocalDateTime.of(2026, 9, 1, 0, 0);

@@ -2,7 +2,7 @@ package com.backend.gapfinder.view.dto;
 
 import java.util.List;
 
-// DTO with the answer of the BQ 2: how many location updates per hour the backend receives from each student
+// DTO with the answer of the BQ 1: how many location updates per hour the backend receives from each student
 // while they are inside a campus building
 // A location update is only logged when the student is inside a building (location_logs), and the hours are
 // clock hours, so the first and last hour of a visit can be partial

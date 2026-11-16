@@ -1,6 +1,6 @@
 package com.backend.gapfinder.view.dto;
 
-// DTO with the activity a student chooses most often when creating open tables (BQ 6)
+// DTO with the activity a student chooses most often when creating open tables (BQ 5)
 public record UserPreferredActivityBasicDTO(
 
     // Unique identifier of the activity

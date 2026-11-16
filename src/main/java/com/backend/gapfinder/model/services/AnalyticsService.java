@@ -77,7 +77,7 @@ public class AnalyticsService {
         this.interestRepository = interestRepository;
     }
 
-    // ==================== BQ 2 TYPE 1 GRUPAL ====================
+    // ==================== BQ 1 TYPE 1 GRUPAL ====================
     // How many location updates per hour does the backend receive from each student while they are inside a campus building?
 
     // Ranges of updates per student-hour in natural order
@@ -136,9 +136,9 @@ public class AnalyticsService {
                 students);
     }
 
-    // ================== END BQ 2 TYPE 1 GRUPAL ==================
+    // ================== END BQ 1 TYPE 1 GRUPAL ==================
 
-    // ==================== BQ 3 TYPE 2 GRUPAL ====================
+    // ==================== BQ 2 TYPE 2 GRUPAL ====================
     // At which step do students most often leave the Open Table creating process?
 
     // Retrieves the creation step with the highest abandonment rate since the given
@@ -154,9 +154,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 3 TYPE 2 GRUPAL ==================
+    // ================== END BQ 2 TYPE 2 GRUPAL ==================
 
-    // ==================== BQ 5 ====================
+    // ==================== BQ 4 ====================
     // Miguel Cabrera: Which gap durations have the lowest match coverage?
 
     // Retrieves match coverage metrics grouped by gap duration buckets sorted by
@@ -197,9 +197,9 @@ public class AnalyticsService {
         return matchedMinutes / gapMinutes * 100;
     }
 
-    // ================== END BQ 5 ==================
+    // ================== END BQ 4 ==================
 
-    // ==================== BQ 7 ====================
+    // ==================== BQ 6 ====================
     // Sofia Arias: Which connection method leads to more accepted meetups: open
     // tables or matches?
 
@@ -240,9 +240,9 @@ public class AnalyticsService {
         return (double) completed / total * 100;
     }
 
-    // ================== END BQ 7 ==================
+    // ================== END BQ 6 ==================
 
-    // ==================== BQ 12 INDIVIDUAL ====================
+    // ==================== BQ 10 INDIVIDUAL ====================
     // Sofia Morato: Which careers and semesters have the highest rate of unmatched
     // free time on campus?
 
@@ -307,9 +307,9 @@ public class AnalyticsService {
                 rate);
     }
 
-    // ================== END BQ 12 INDIVIDUAL ==================
+    // ================== END BQ 10 INDIVIDUAL ==================
 
-    // ==================== BQ 11 ====================
+    // ==================== BQ 9 ====================
     // Joel: Where do the most students have free time on campus?
 
     // Retrieves student presence and free time metrics aggregated by campus
@@ -331,9 +331,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 11 ==================
+    // ================== END BQ 9 ==================
 
-    // ==================== BQ 13 INDIVIDUAL ====================
+    // ==================== BQ 11 INDIVIDUAL ====================
     // Daniela Martinez: Which interests are shared by the largest groups of
     // students who are free at the same time?
 
@@ -392,9 +392,9 @@ public class AnalyticsService {
                 row.getStudentsWithInterest() != null ? row.getStudentsWithInterest() : 0L);
     }
 
-    // ================== END BQ 13 INDIVIDUAL ==================
+    // ================== END BQ 11 INDIVIDUAL ==================
 
-    // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
+    // ==================== BQ 3 INDIVIDUAL TYPE 2 ====================
     // Sofia Morato: How long after a gap starts do students open the app?
 
     // Ranges of minutes in natural order; the last one groups the gaps where the
@@ -489,9 +489,9 @@ public class AnalyticsService {
                 userAverage, userGaps, offsetMinutes, source);
     }
 
-    // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
+    // ================== END BQ 3 INDIVIDUAL TYPE 2 ==================
 
-    // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
+    // ==================== BQ 5 INDIVIDUAL TYPE 2 ====================
     // Joel: Which activity does the student choose most often when creating open
     // tables,
     // so the app can preselect it the next time they create one?
@@ -562,8 +562,8 @@ public class AnalyticsService {
         return new UserPreferredActivityBasicDTO(row.getActivityId(), row.getActivityName(), row.getTimesChosen());
     }
 
-    // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
-    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
+    // ================== END BQ 5 INDIVIDUAL TYPE 2 ==================
+    // ==================== BQ 7 INDIVIDUAL TYPE 3 ====================
     // Sofia Morato: Which activities are never or rarely chosen when creating open
     // tables?
 
@@ -642,9 +642,9 @@ public class AnalyticsService {
         return "OK";
     }
 
-    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+    // ================== END BQ 7 INDIVIDUAL TYPE 3 ==================
 
-    // ==================== BQ 10 INDIVIDUAL TYPE 3 ====================
+    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
     // Miguel Cabrera: In which match score range are match proposals most often rejected?
 
     // Ranges of score in natural order; the score is minutes of overlap plus bonuses, so each range is 50 points
@@ -701,9 +701,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 10 INDIVIDUAL TYPE 3 ==================
+    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
 
-    // ==================== BQ 14 INDIVIDUAL ====================
+    // ==================== BQ 12 INDIVIDUAL ====================
     // Daniela Martinez: Which interests have the most students but the fewest open
     // tables created for their activities?
 
@@ -764,5 +764,5 @@ public class AnalyticsService {
                 demandRatio);
     }
 
-    // ================== END BQ 14 INDIVIDUAL ==================
+    // ================== END BQ 12 INDIVIDUAL ==================
 }

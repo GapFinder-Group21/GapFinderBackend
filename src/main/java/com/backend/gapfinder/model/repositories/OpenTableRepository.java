@@ -56,10 +56,10 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
     // Counts the total number of open tables created on or after the specified timestamp.
     long countByCreatedAtGreaterThanEqual(LocalDateTime since);
 
-    // Count the open tables with a given status (BQ 7)
+    // Count the open tables with a given status (BQ 6)
     long countByStatus(OpenTableStatusEnum status);
 
-    // BQ 6 TYPE 2
+    // BQ 5 TYPE 2
     // Times a student chose each activity when creating open tables since :since, most chosen first
     // Tie: the activity used most recently comes first. Open tables without activity are ignored
     @Query(value = """
@@ -76,7 +76,7 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
     List<StudentActivityUsageProjection> findActivityUsageByStudent(@Param("userId") Long userId,
                                                                     @Param("since") LocalDateTime since);
 
-    // BQ 6 TYPE 2
+    // BQ 5 TYPE 2
     // Open tables created with each activity since :since and the different students who created them, most preferred first
     // Tie: the activity used most recently comes first. Open tables without activity are ignored
     @Query(value = """
@@ -92,7 +92,7 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
         """, nativeQuery = true)
     List<PreferredActivityRankingProjection> countOpenTablesByActivity(@Param("since") LocalDateTime since);
 
-    // BQ 6 TYPE 2
+    // BQ 5 TYPE 2
     // Totals since :since: open tables with activity, students, and the students who always repeat the same activity
     // A student can only repeat an activity with two or more open tables, so the percentage uses those students
     // Without open tables it returns one row with zeros

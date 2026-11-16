@@ -47,10 +47,10 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
     // Check if a gap is used by any match, as proposer or acceptor
     boolean existsByProposerGapIdOrAcceptorGapId(Long proposerGapId, Long acceptorGapId);
 
-    // Count the matches with a given status (BQ 7)
+    // Count the matches with a given status (BQ 6)
     long countByStatus(MatchStatusEnum status);
 
-    // BQ 10 INDIVIDUAL TYPE 3
+    // BQ 8 INDIVIDUAL TYPE 3
     // Answered matches (ACCEPTED, COMPLETED or REJECTED by a user) starting since :since per range of score, with how many were rejected
     // The score is minutes of overlap (1 point per minute) plus bonuses of at most 35, so the ranges go up by 50 points
     // :since filters by when the request was made (created_at); old rows without it fall back to start_time

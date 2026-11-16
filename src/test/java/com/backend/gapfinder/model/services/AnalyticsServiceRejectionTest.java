@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// BQ 10: rejection rate by score range
+// BQ 8: rejection rate by score range
 class AnalyticsServiceRejectionTest {
 
     private MatchRepository matchRepository;

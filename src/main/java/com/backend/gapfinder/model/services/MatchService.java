@@ -423,7 +423,7 @@ public class MatchService {
 
     // Runs automatically every 5 minutes to close the matches whose meeting time already ended:
     // accepted ones become COMPLETED and pending ones that nobody answered become REJECTED
-    // Those ones keep respondedAt null, so BQ 10 can tell "nobody answered" from "the user rejected"
+    // Those ones keep respondedAt null, so BQ 8 can tell "nobody answered" from "the user rejected"
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional
     public void completeExpiredMatches() {

@@ -27,7 +27,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-// BQ 10: respondedAt is only set when a user accepts or rejects, never when the request expires or is cancelled
+// BQ 8: respondedAt is only set when a user accepts or rejects, never when the request expires or is cancelled
 class MatchServiceRespondedAtTest {
 
     private MatchRepository matchRepository;

@@ -71,7 +71,7 @@ public interface UserLocationLogRepository extends JpaRepository<UserLocationLog
     List<BuildingGapPresenceProjection> findGapPresenceByBuilding();
 
 
-    // BQ 2 TYPE 1
+    // BQ 1 TYPE 1
     // A location log is only created when the student is inside a campus building, so each log is one location
     // update received while inside a building. The updates are grouped per "student-hour" (one student in one clock
     // hour with at least one update) and these queries summarize how many updates each student-hour has

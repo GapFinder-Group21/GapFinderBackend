@@ -1,7 +1,7 @@
 package com.backend.gapfinder.view.dto;
 
 // DTO with student demand vs open table supply per interest
-// Used by BQ 14: which interests have the most students but the fewest open tables for their activities?
+// Used by BQ 12: which interests have the most students but the fewest open tables for their activities?
 public record InterestDemandGapBasicDTO(
 
     // Identifier of the interest

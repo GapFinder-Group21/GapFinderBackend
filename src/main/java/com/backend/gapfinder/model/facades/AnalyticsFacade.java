@@ -1,6 +1,7 @@
 package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
@@ -57,6 +58,8 @@ public class AnalyticsFacade {
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
         dashboard.setInterestDemandGap(getInterestDemandGapOrEmpty(start, limit));
         dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
+        // BQ 14 uses the whole history, so it does not receive the start date
+        dashboard.setEmptyTablesByPhoto(getEmptyTablesByPhotoOrEmpty());
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
@@ -160,6 +163,16 @@ public class AnalyticsFacade {
             return analyticsService.getInterestsWithMostStudentsAndFewestTables(since, limit);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay intereses registrados desde {}", since);
+            return List.of();
+        }
+    }
+
+    // BQ 14: returns an empty list instead of failing when there are no finished open tables
+    private List<EmptyTablesByPhotoDTO> getEmptyTablesByPhotoOrEmpty() {
+        try {
+            return analyticsService.getEmptyTablesByPhoto();
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay open tables terminadas");
             return List.of();
         }
     }

@@ -5,6 +5,7 @@ import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
@@ -28,6 +29,7 @@ import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
+import com.backend.gapfinder.model.repositories.projections.EmptyTablesByPhotoProjection;
 import com.backend.gapfinder.model.repositories.projections.InterestDemandGapProjection;
 import com.backend.gapfinder.model.repositories.projections.LocationUpdateSummaryProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
@@ -765,4 +767,60 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+    // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
+    // Joel Niño: What percentage of open tables with and without a photo ended with no participants?
+
+    // Photo groups in the order the dashboard shows them
+    private static final List<String> PHOTO_GROUPS = List.of("WITH_PHOTO", "WITHOUT_PHOTO");
+
+    // Share of the finished open tables with and without photo that nobody joined, marking the group with the highest share
+    // It decides about the photo of the creation wizard: if the tables without photo end empty more often, the photo
+    // is promoted or made required; if there is no difference, the optional photo step is removed
+    // It uses the whole history, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<EmptyTablesByPhotoDTO> getEmptyTablesByPhoto() {
+        log.info("Inicia proceso de consultar el porcentaje de open tables vacías con y sin foto");
+
+        // Tables per group, with 0 for the group that does not appear in the query
+        Map<String, EmptyTablesByPhotoProjection> rowsByGroup = new LinkedHashMap<>();
+        openTableRepository.countEmptyTablesByPhoto().forEach(row -> rowsByGroup.put(row.getPhotoGroup(), row));
+
+        List<EmptyTablesByPhotoDTO> groups = PHOTO_GROUPS.stream()
+                .map(group -> {
+                    EmptyTablesByPhotoProjection row = rowsByGroup.get(group);
+                    long total = row != null && row.getTotal() != null ? row.getTotal() : 0L;
+                    long empty = row != null && row.getEmpty() != null ? row.getEmpty() : 0L;
+                    // A group without finished tables has no share: 0 instead of dividing by zero
+                    double percentage = total == 0 ? 0.0 : (double) empty / total * 100;
+                    return new EmptyTablesByPhotoDTO(group, total, empty, percentage, false);
+                })
+                .toList();
+
+        if (groups.stream().mapToLong(EmptyTablesByPhotoDTO::total).sum() == 0) {
+            throw new NotFoundException("No hay open tables terminadas");
+        }
+
+        // Highest share among the groups with empty tables; on a tie no group is marked, because neither is worse
+        double highestPercentage = groups.stream()
+                .filter(stat -> stat.empty() > 0)
+                .mapToDouble(EmptyTablesByPhotoDTO::emptyPercentage)
+                .max()
+                .orElse(-1);
+        List<String> highestGroups = groups.stream()
+                .filter(stat -> stat.empty() > 0 && stat.emptyPercentage() == highestPercentage)
+                .map(EmptyTablesByPhotoDTO::group)
+                .toList();
+        String highestGroup = highestGroups.size() == 1 ? highestGroups.get(0) : null;
+
+        List<EmptyTablesByPhotoDTO> result = groups.stream()
+                .map(stat -> new EmptyTablesByPhotoDTO(stat.group(), stat.total(), stat.empty(),
+                        stat.emptyPercentage(), stat.group().equals(highestGroup)))
+                .toList();
+
+        log.info("Termina proceso de consultar el porcentaje de open tables vacías con y sin foto");
+        return result;
+    }
+
+    // ================== END BQ 14 INDIVIDUAL TYPE 3 ==================
 }

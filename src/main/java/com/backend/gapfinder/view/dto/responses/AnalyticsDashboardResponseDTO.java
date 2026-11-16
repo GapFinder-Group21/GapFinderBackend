@@ -1,6 +1,7 @@
 package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
@@ -60,4 +61,8 @@ public class AnalyticsDashboardResponseDTO {
     // BQ 12: interests with the most students but the fewest open tables,
     // highest unmet demand first
     private List<InterestDemandGapBasicDTO> interestDemandGap;
+
+    // BQ 14: share of the finished open tables with and without photo that nobody joined, WITH_PHOTO first,
+    // the highest one marked; whole history, not filtered by the period (empty if there are no finished open tables)
+    private List<EmptyTablesByPhotoDTO> emptyTablesByPhoto;
 }

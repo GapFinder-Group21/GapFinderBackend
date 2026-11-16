@@ -1,6 +1,7 @@
 package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
@@ -233,4 +234,17 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+    // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
+
+    // What percentage of open tables with and without a photo ended with no participants?
+    // Get the 2 groups (WITH_PHOTO, WITHOUT_PHOTO) with their share of finished tables nobody joined, marking the highest one
+    // It uses the whole history, so it has no since parameter
+    // GET /analytics/open-tables/empty-by-photo
+    @GetMapping("/open-tables/empty-by-photo")
+    public List<EmptyTablesByPhotoDTO> getEmptyTablesByPhoto() {
+        return analyticsService.getEmptyTablesByPhoto();
+    }
+
+    // ================== END BQ 14 INDIVIDUAL TYPE 3 ==================
 }

@@ -234,6 +234,12 @@
         <p class="question">Which interests have the most students but the fewest open tables created for their activities?</p>
         <div id="bqInterestDemandGap"></div>
       </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 14</div>
+        <p class="question">What percentage of open tables with and without a photo ended with no participants?</p>
+        <div id="bq14"></div>
+        <p class="note">All time</p>
+      </div>
     </div>
   </section>
 
@@ -1118,6 +1124,58 @@
   // Number of the last request, so an older answer never overwrites a newer one
   let requestNumber = 0;
 
+  // BQ 14: headline (empty share with and without photo) and two columns with the share of finished tables nobody joined
+  function renderBq14(rows) {
+    const box = document.getElementById('bq14');
+    if (!rows || rows.length === 0) {
+      clearChart('bq14');
+      return showEmpty(box);
+    }
+
+    // The backend always sends WITH_PHOTO and WITHOUT_PHOTO, in that order, and marks the highest one (none on a tie)
+    const labels = { WITH_PHOTO: 'With photo', WITHOUT_PHOTO: 'Without photo' };
+    const withPhoto = rows.find(r => r.group === 'WITH_PHOTO') || { total: 0, empty: 0, emptyPercentage: 0 };
+    const withoutPhoto = rows.find(r => r.group === 'WITHOUT_PHOTO') || { total: 0, empty: 0, emptyPercentage: 0 };
+
+    box.innerHTML = `
+      <div class="hero">With photo ${pct(withPhoto.emptyPercentage)} · Without photo ${pct(withoutPhoto.emptyPercentage)}</div>
+      <div class="hero-sub">Finished open tables that nobody joined (${withPhoto.empty} of ${withPhoto.total} with photo, ${withoutPhoto.empty} of ${withoutPhoto.total} without)</div>
+      <div id="bq14Chart"></div>`;
+
+    drawChart('bq14', newCanvas(document.getElementById('bq14Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => labels[r.group] || r.group),
+        datasets: [{
+          data: rows.map(r => r.emptyPercentage),
+          backgroundColor: rows.map(r => r.highestEmpty ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Ended empty: ${pct(r.emptyPercentage)}`, `Empty: ${r.empty}`, `Finished: ${r.total}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   // Calls the backend once and redraws every card
   async function loadDashboard() {
     const myRequest = ++requestNumber;
@@ -1140,6 +1198,7 @@
       renderBq10(data.unmatchedFreeTimeByCareerSemester);
       renderBq11(data.interestsByLargestFreeGroup);
       renderBqInterestDemandGap(data.interestDemandGap);
+      renderBq14(data.emptyTablesByPhoto);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;

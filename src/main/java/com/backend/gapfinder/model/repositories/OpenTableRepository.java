@@ -2,6 +2,7 @@ package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.models.OpenTableModel;
+import com.backend.gapfinder.model.repositories.projections.EmptyTablesByPhotoProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityRankingProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
@@ -113,5 +114,26 @@ public interface OpenTableRepository extends JpaRepository<OpenTableModel, Long>
         ) per_student
         """, nativeQuery = true)
     PreferredActivityTotalsProjection findPreferredActivityTotals(@Param("since") LocalDateTime since);
+
+    // BQ 14 INDIVIDUAL TYPE 3
+    // Open tables that already finished (end_time before now) split in WITH_PHOTO (photo_url not null and not blank)
+    // and WITHOUT_PHOTO, with how many of them have no row in participants_open_tables
+    // The creator is not stored as a participant, so a table without rows is a table that nobody joined
+    // The tables that have not finished are left out: someone can still join them
+    // It uses the whole history (no :since). A group without finished tables does not appear (the service adds it with 0)
+    @Query(value = """
+        SELECT CASE
+                WHEN o.photo_url IS NOT NULL AND TRIM(o.photo_url) <> '' THEN 'WITH_PHOTO'
+                ELSE 'WITHOUT_PHOTO'
+            END AS "photoGroup",
+            CAST(COUNT(*) AS bigint) AS "total",
+            CAST(SUM(CASE WHEN NOT EXISTS (
+                    SELECT 1 FROM participants_open_tables p WHERE p.open_table_id = o.id
+                ) THEN 1 ELSE 0 END) AS bigint) AS "empty"
+        FROM open_tables o
+        WHERE o.end_time < LOCALTIMESTAMP
+        GROUP BY 1
+        """, nativeQuery = true)
+    List<EmptyTablesByPhotoProjection> countEmptyTablesByPhoto();
 
 }

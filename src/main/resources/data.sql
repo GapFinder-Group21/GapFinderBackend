@@ -14131,6 +14131,19 @@ CROSS JOIN LATERAL (VALUES (ag.user_id, pg.user_id, m.id % 3 = 0),
                            (pg.user_id, ag.user_id, m.id % 6 = 0)) AS r(rater_id, rated_id, rates)
 WHERE m.status = 'COMPLETED' AND r.rates AND (SELECT go FROM seed_run)
 ON CONFLICT DO NOTHING;
+-- ---------- photos of finished open tables for the BQ 14 (What percentage of open tables with and without a photo
+-- ended with no participants?)
+-- The seed creates the open tables without photo, so some of the finished ones get one: half of the ones that
+-- someone joined and a quarter of the ones nobody joined, so the two groups of the BQ show different empty rates.
+-- Only finished tables, so the photo is never shown in the lists of active tables
+UPDATE open_tables o
+SET photo_url = '/uploads/open-tables/seed-' || o.id || '.jpg'
+WHERE o.end_time < LOCALTIMESTAMP
+  AND o.photo_url IS NULL
+  AND CASE WHEN EXISTS (SELECT 1 FROM participants_open_tables p WHERE p.open_table_id = o.id)
+           THEN o.id % 2 = 0
+           ELSE o.id % 4 = 0 END
+  AND (SELECT go FROM seed_run);
 -- ---------- temporary tables cleanup
 DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;

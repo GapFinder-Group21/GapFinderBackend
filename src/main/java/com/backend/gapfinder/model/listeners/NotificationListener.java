@@ -42,6 +42,7 @@ public class NotificationListener {
             case MATCH_PROPOSED -> event.actorName() + " te propuso un match";
             case MATCH_ACCEPTED -> event.actorName() + " aceptó tu match";
             case MATCH_REJECTED -> event.actorName() + " rechazó tu match";
+            case MATCH_RATED -> event.actorName() + " calificó su match contigo";
             default -> throw new IllegalArgumentException("Tipo no válido para un evento de match: " + event.type());
         };
 

@@ -20,6 +20,9 @@ public enum NotificationTypeEnum {
     // The user's match proposal was rejected
     MATCH_REJECTED,
 
+    // The other student rated a finished match with the user
+    MATCH_RATED,
+
     // Someone joined the user's open table
     OPEN_TABLE_JOINED
 }

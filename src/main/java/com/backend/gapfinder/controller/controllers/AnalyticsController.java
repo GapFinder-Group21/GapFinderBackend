@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -234,6 +235,19 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+    // ==================== BQ 13 INDIVIDUAL TYPE 3 ====================
+
+    // Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5 stars?
+    // Get the 5 numbers of stars in order with their share of the ratings, marking the most common one
+    // It uses the whole history, so it has no since parameter
+    // GET /analytics/matches/ratings-by-stars
+    @GetMapping("/matches/ratings-by-stars")
+    public List<RatingStarsDistributionDTO> getRatingsByStars() {
+        return analyticsService.getRatingsByStars();
+    }
+
+    // ================== END BQ 13 INDIVIDUAL TYPE 3 ==================
 
     // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
 

@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -61,6 +62,10 @@ public class AnalyticsDashboardResponseDTO {
     // BQ 12: interests with the most students but the fewest open tables,
     // highest unmet demand first
     private List<InterestDemandGapBasicDTO> interestDemandGap;
+
+    // BQ 13: share of the match ratings with 1, 2, 3, 4 and 5 stars, in that order, the most common one marked;
+    // whole history, not filtered by the period (empty if there are no match ratings)
+    private List<RatingStarsDistributionDTO> ratingsByStars;
 
     // BQ 14: share of the finished open tables with and without photo that nobody joined, WITH_PHOTO first,
     // the highest one marked; whole history, not filtered by the period (empty if there are no finished open tables)

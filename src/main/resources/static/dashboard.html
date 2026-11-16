@@ -235,6 +235,12 @@
         <div id="bqInterestDemandGap"></div>
       </div>
       <div class="card wide">
+        <div class="bq-tag">BQ 13</div>
+        <p class="question">Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5 stars?</p>
+        <div id="bq13"></div>
+        <p class="note">All time</p>
+      </div>
+      <div class="card wide">
         <div class="bq-tag">BQ 14</div>
         <p class="question">What percentage of open tables with and without a photo ended with no participants?</p>
         <div id="bq14"></div>
@@ -1124,6 +1130,59 @@
   // Number of the last request, so an older answer never overwrites a newer one
   let requestNumber = 0;
 
+  // BQ 13: headline (share of ratings with 1 or 2 stars) and five columns with the share of each number of stars
+  function renderBq13(rows) {
+    const box = document.getElementById('bq13');
+    if (!rows || rows.length === 0) {
+      clearChart('bq13');
+      return showEmpty(box);
+    }
+
+    // The backend always sends the 5 numbers of stars in order, the empty ones too, and marks the most common one
+    const total = rows.reduce((sum, r) => sum + r.ratings, 0);
+    const low = rows.filter(r => r.stars <= 2);
+    const lowRatings = low.reduce((sum, r) => sum + r.ratings, 0);
+    const lowPercentage = low.reduce((sum, r) => sum + r.percentage, 0);
+
+    box.innerHTML = `
+      <div class="hero">${pct(lowPercentage)} low ratings</div>
+      <div class="hero-sub">${lowRatings} of ${total} ratings have 1 or 2 stars · above 30% the matching algorithm should be updated</div>
+      <div id="bq13Chart"></div>`;
+
+    drawChart('bq13', newCanvas(document.getElementById('bq13Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => `${r.stars} ★`),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map(r => r.mostCommon ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { title: { display: true, text: 'Stars' }, grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share: ${pct(r.percentage)}`, `Ratings: ${r.ratings}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   // BQ 14: headline (empty share with and without photo) and two columns with the share of finished tables nobody joined
   function renderBq14(rows) {
     const box = document.getElementById('bq14');
@@ -1198,6 +1257,7 @@
       renderBq10(data.unmatchedFreeTimeByCareerSemester);
       renderBq11(data.interestsByLargestFreeGroup);
       renderBqInterestDemandGap(data.interestDemandGap);
+      renderBq13(data.ratingsByStars);
       renderBq14(data.emptyTablesByPhoto);
 
       errorBox.hidden = true;

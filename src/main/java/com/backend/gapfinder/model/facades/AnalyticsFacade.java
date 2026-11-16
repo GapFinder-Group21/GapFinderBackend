@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -58,7 +59,8 @@ public class AnalyticsFacade {
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
         dashboard.setInterestDemandGap(getInterestDemandGapOrEmpty(start, limit));
         dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
-        // BQ 14 uses the whole history, so it does not receive the start date
+        // BQ 13 and BQ 14 use the whole history, so they do not receive the start date
+        dashboard.setRatingsByStars(getRatingsByStarsOrEmpty());
         dashboard.setEmptyTablesByPhoto(getEmptyTablesByPhotoOrEmpty());
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
@@ -163,6 +165,16 @@ public class AnalyticsFacade {
             return analyticsService.getInterestsWithMostStudentsAndFewestTables(since, limit);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay intereses registrados desde {}", since);
+            return List.of();
+        }
+    }
+
+    // BQ 13: returns an empty list instead of failing when there are no match ratings
+    private List<RatingStarsDistributionDTO> getRatingsByStarsOrEmpty() {
+        try {
+            return analyticsService.getRatingsByStars();
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay calificaciones de matches");
             return List.of();
         }
     }

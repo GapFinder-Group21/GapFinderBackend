@@ -14,6 +14,7 @@ import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityRankingBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
@@ -21,6 +22,7 @@ import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.MatchRatingModel;
 import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
@@ -44,6 +46,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -767,6 +770,47 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 12 INDIVIDUAL ==================
+
+    // ==================== BQ 13 INDIVIDUAL TYPE 3 ====================
+    // Sofia Morato: Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5 stars?
+
+    // Share of the match ratings with each number of stars, from 1 to 5 (the ones nobody gave too), marking the most common
+    // It decides about the matching algorithm: if 1 and 2 stars together pass 30 %, the matches it suggests are not working
+    // It uses the whole history, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<RatingStarsDistributionDTO> getRatingsByStars() {
+        log.info("Inicia proceso de consultar el porcentaje de calificaciones de matches por estrellas");
+
+        // Ratings per number of stars, with 0 for the ones that do not appear in the query
+        Map<Integer, Long> ratingsByStars = new LinkedHashMap<>();
+        matchRepository.countRatingsByStars().forEach(row -> ratingsByStars.put(row.getStars(),
+                row.getRatings() != null ? row.getRatings() : 0L));
+
+        long total = ratingsByStars.values().stream().mapToLong(Long::longValue).sum();
+        if (total == 0) {
+            throw new NotFoundException("No hay calificaciones de matches");
+        }
+
+        // The most given number of stars; on a tie the one with fewer stars wins, so the answer is always the same
+        int mostCommonStars = MatchRatingModel.MIN_STARS;
+        for (int stars = MatchRatingModel.MIN_STARS; stars <= MatchRatingModel.MAX_STARS; stars++) {
+            if (ratingsByStars.getOrDefault(stars, 0L) > ratingsByStars.getOrDefault(mostCommonStars, 0L)) {
+                mostCommonStars = stars;
+            }
+        }
+
+        List<RatingStarsDistributionDTO> result = new ArrayList<>();
+        for (int stars = MatchRatingModel.MIN_STARS; stars <= MatchRatingModel.MAX_STARS; stars++) {
+            long ratings = ratingsByStars.getOrDefault(stars, 0L);
+            double percentage = (double) ratings / total * 100;
+            result.add(new RatingStarsDistributionDTO(stars, ratings, percentage, stars == mostCommonStars));
+        }
+
+        log.info("Termina proceso de consultar el porcentaje de calificaciones de matches por estrellas");
+        return result;
+    }
+
+    // ================== END BQ 13 INDIVIDUAL TYPE 3 ==================
 
     // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
     // Joel Niño: What percentage of open tables with and without a photo ended with no participants?

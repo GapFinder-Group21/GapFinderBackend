@@ -14118,9 +14118,10 @@ ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
 -- ---------- match ratings ("Mis matches")
 -- In some finished matches the acceptor already rated, and in fewer both did,
 -- so the demo shows matches to rate, rated ones and ones where the other is still missing
+-- The stars go from 1 to 5 (most of them 4 or 5) so the BQ 13 shows the five columns
 INSERT INTO match_ratings (match_id, rater_id, rated_id, stars, comment, created_at)
 SELECT m.id, r.rater_id, r.rated_id,
-       3 + ((m.id + r.rater_id) % 3)::int,
+       (ARRAY[5, 4, 4, 3, 5, 2, 4, 1, 3, 5])[1 + ((m.id + r.rater_id) % 10)::int],
        (ARRAY[NULL, 'Muy buena charla', 'Llegó puntual', 'Buen plan para el hueco', 'Repetiría', NULL])[1 + ((m.id + r.rater_id) % 6)::int],
        LEAST(m.end_time + make_interval(hours => (m.id % 20)::int + 1), LOCALTIMESTAMP)
 FROM matches m

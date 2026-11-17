@@ -2,6 +2,7 @@ package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.repositories.projections.RatingStarsProjection;
 import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -74,4 +75,15 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
         GROUP BY 1
         """, nativeQuery = true)
     List<RejectionByScoreRangeProjection> countRejectionsByScoreRange(@Param("since") LocalDateTime since);
+
+    // BQ 13 INDIVIDUAL TYPE 3
+    // How many match ratings have each number of stars (1 to 5)
+    // It uses the whole history (no :since). A number of stars nobody gave does not appear (the service adds it with 0)
+    @Query(value = """
+        SELECT r.stars AS "stars",
+            CAST(COUNT(*) AS bigint) AS "ratings"
+        FROM match_ratings r
+        GROUP BY r.stars
+        """, nativeQuery = true)
+    List<RatingStarsProjection> countRatingsByStars();
 }

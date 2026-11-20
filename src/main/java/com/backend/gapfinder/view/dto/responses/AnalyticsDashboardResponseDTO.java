@@ -9,6 +9,7 @@ import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 
@@ -70,4 +71,9 @@ public class AnalyticsDashboardResponseDTO {
     // BQ 14: share of the finished open tables with and without photo that nobody joined, WITH_PHOTO first,
     // the highest one marked; whole history, not filtered by the period (empty if there are no finished open tables)
     private List<EmptyTablesByPhotoDTO> emptyTablesByPhoto;
+
+    // BQ 15: share of the finished gaps with study mode in each duration range ('<60', '60-120', '120-180', '180+' minutes),
+    // in that order, the highest one marked; all the finished gaps, not filtered by the period
+    // (empty if there are no finished gaps)
+    private List<StudyModeByGapDurationDTO> studyModeByGapDuration;
 }

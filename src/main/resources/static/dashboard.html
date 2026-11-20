@@ -246,6 +246,12 @@
         <div id="bq14"></div>
         <p class="note">All time</p>
       </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 15</div>
+        <p class="question">For each gap duration range (less than 1 h, 1–2 h, 2–3 h, more than 3 h), what percentage of gaps have study mode activated?</p>
+        <div id="bq15"></div>
+        <p class="note">All time · finished gaps only</p>
+      </div>
     </div>
   </section>
 
@@ -1235,6 +1241,69 @@
     });
   }
 
+  // BQ 15: headline (the range with the highest share of gaps with study mode) and four columns, one per duration range
+  function renderBq15(rows) {
+    const box = document.getElementById('bq15');
+    if (!rows || rows.length === 0) {
+      clearChart('bq15');
+      return showEmpty(box);
+    }
+
+    // The backend always sends the 4 ranges in order, the ones without study mode too, and marks the highest one
+    // (none if no gap has study mode). A gap of exactly 3 h is in the last range, so it reads "3 h or more"
+    const labels = { '<60': '< 1 h', '60-120': '1–2 h', '120-180': '2–3 h', '180+': '≥ 3 h' };
+    const rangeLabel = r => labels[r.range] || r.range;
+    const total = rows.reduce((sum, r) => sum + r.totalGaps, 0);
+    const withStudyMode = rows.reduce((sum, r) => sum + r.gapsWithStudyMode, 0);
+    const highest = rows.find(r => r.highestUse);
+    const decision = 'from 20% suggest study mode in that range · under 10% in every range remove it';
+
+    const hero = highest
+      ? `${pct(highest.percentage)} in ${esc(rangeLabel(highest))} gaps`
+      : 'No gap has study mode yet';
+    const heroSub = highest
+      ? `Highest share: ${highest.gapsWithStudyMode} of ${highest.totalGaps} gaps of that range · ${withStudyMode} of ${total} finished gaps in total · ${decision}`
+      : `0 of ${total} finished gaps · ${decision}`;
+
+    box.innerHTML = `
+      <div class="hero">${hero}</div>
+      <div class="hero-sub">${heroSub}</div>
+      <div id="bq15Chart"></div>`;
+
+    drawChart('bq15', newCanvas(document.getElementById('bq15Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(rangeLabel),
+        datasets: [{
+          data: rows.map(r => r.percentage),
+          backgroundColor: rows.map(r => r.highestUse ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 48,
+          showValues: true,
+          formatValue: pct
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        layout: { padding: { top: 20 } },
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { title: { display: true, text: 'Gap duration' }, grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`With study mode: ${pct(r.percentage)}`, `Gaps with study mode: ${r.gapsWithStudyMode}`, `Finished gaps: ${r.totalGaps}`];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
   // Calls the backend once and redraws every card
   async function loadDashboard() {
     const myRequest = ++requestNumber;
@@ -1259,6 +1328,7 @@
       renderBqInterestDemandGap(data.interestDemandGap);
       renderBq13(data.ratingsByStars);
       renderBq14(data.emptyTablesByPhoto);
+      renderBq15(data.studyModeByGapDuration);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;

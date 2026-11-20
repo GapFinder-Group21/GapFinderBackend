@@ -17,6 +17,7 @@ import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
@@ -38,6 +39,7 @@ import com.backend.gapfinder.model.repositories.projections.PreferredActivityTot
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
 import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
+import com.backend.gapfinder.model.repositories.projections.StudyModeByGapDurationProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 import com.backend.gapfinder.model.repositories.projections.UnusedActivityProjection;
 
@@ -867,4 +869,60 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 14 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 15 INDIVIDUAL TYPE 3 ====================
+    // Miguel Cabrera: For each gap duration range (less than 1 h, 1-2 h, 2-3 h, more than 3 h), what percentage of gaps have study mode activated?
+
+    // Duration ranges in minutes in the order the dashboard shows them, from the shortest to the longest gap
+    private static final List<String> STUDY_MODE_RANGES = List.of("<60", "60-120", "120-180", "180+");
+
+    // Share of the finished gaps of each duration range that have study mode, marking the range with the highest share
+    // It decides about study mode: it is suggested only in the ranges that pass 20 %, and if no range reaches 10 %
+    // the feature is removed
+    // It uses all the finished gaps, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<StudyModeByGapDurationDTO> getStudyModeByGapDuration() {
+        log.info("Inicia proceso de consultar el porcentaje de gaps con modo estudio por duración");
+
+        // Gaps per range, with 0 for the ranges that do not appear in the query
+        Map<String, StudyModeByGapDurationProjection> rowsByRange = new LinkedHashMap<>();
+        gapRepository.countStudyModeByGapDuration().forEach(row -> rowsByRange.put(row.getDurationRange(), row));
+
+        List<StudyModeByGapDurationDTO> ranges = STUDY_MODE_RANGES.stream()
+                .map(range -> {
+                    StudyModeByGapDurationProjection row = rowsByRange.get(range);
+                    long total = row != null && row.getTotal() != null ? row.getTotal() : 0L;
+                    long withStudyMode = row != null && row.getWithStudyMode() != null ? row.getWithStudyMode() : 0L;
+                    // A range without finished gaps has no share: 0 instead of dividing by zero
+                    double percentage = total == 0 ? 0.0 : (double) withStudyMode / total * 100;
+                    return new StudyModeByGapDurationDTO(range, total, withStudyMode, percentage, false);
+                })
+                .toList();
+
+        if (ranges.stream().mapToLong(StudyModeByGapDurationDTO::totalGaps).sum() == 0) {
+            throw new NotFoundException("No hay gaps terminados");
+        }
+
+        // The range with the highest share among the ones that have study mode; on a tie the first one in the natural
+        // order wins, so the answer is always the same. If no gap has study mode, no range is marked
+        String highestRange = null;
+        double highestPercentage = 0;
+        for (StudyModeByGapDurationDTO stat : ranges) {
+            if (stat.gapsWithStudyMode() > 0 && (highestRange == null || stat.percentage() > highestPercentage)) {
+                highestRange = stat.range();
+                highestPercentage = stat.percentage();
+            }
+        }
+
+        String highest = highestRange;
+        List<StudyModeByGapDurationDTO> result = ranges.stream()
+                .map(stat -> new StudyModeByGapDurationDTO(stat.range(), stat.totalGaps(), stat.gapsWithStudyMode(),
+                        stat.percentage(), stat.range().equals(highest)))
+                .toList();
+
+        log.info("Termina proceso de consultar el porcentaje de gaps con modo estudio por duración");
+        return result;
+    }
+
+    // ================== END BQ 15 INDIVIDUAL TYPE 3 ==================
 }

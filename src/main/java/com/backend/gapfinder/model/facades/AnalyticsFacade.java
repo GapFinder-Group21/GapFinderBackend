@@ -9,6 +9,7 @@ import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.view.dto.responses.AnalyticsDashboardResponseDTO;
@@ -59,9 +60,10 @@ public class AnalyticsFacade {
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
         dashboard.setInterestDemandGap(getInterestDemandGapOrEmpty(start, limit));
         dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
-        // BQ 13 and BQ 14 use the whole history, so they do not receive the start date
+        // BQ 13, BQ 14 and BQ 15 use the whole history, so they do not receive the start date
         dashboard.setRatingsByStars(getRatingsByStarsOrEmpty());
         dashboard.setEmptyTablesByPhoto(getEmptyTablesByPhotoOrEmpty());
+        dashboard.setStudyModeByGapDuration(getStudyModeByGapDurationOrEmpty());
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
@@ -185,6 +187,16 @@ public class AnalyticsFacade {
             return analyticsService.getEmptyTablesByPhoto();
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay open tables terminadas");
+            return List.of();
+        }
+    }
+
+    // BQ 15: returns an empty list instead of failing when there are no finished gaps
+    private List<StudyModeByGapDurationDTO> getStudyModeByGapDurationOrEmpty() {
+        try {
+            return analyticsService.getStudyModeByGapDuration();
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay gaps terminados");
             return List.of();
         }
     }

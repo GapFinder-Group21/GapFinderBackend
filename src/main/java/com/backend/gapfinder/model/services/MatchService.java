@@ -175,9 +175,15 @@ public class MatchService {
             return List.of();
         }
 
+        // A user in study mode is hidden from the others, so they do not look for matches either
+        LocalDateTime now = LocalDateTime.now();
+        if (gapRepository.isGapInStudyPeriod(targetGap.getId(), now)) {
+            log.info("El gap con id = {} está en modo estudio, no se buscan candidatos", gapId);
+            return List.of();
+        }
+
         List<GapModel> candidates = gapRepository.findOverlappingGapsExcludingUser(
-                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime(),
-                LocalDateTime.now());
+                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime(), now);
 
         List<MatchCandidateResponseDTO> result = candidates.stream()
                 .map(candidateGap -> {
@@ -233,6 +239,11 @@ public class MatchService {
 
         // A gap can only have one meeting booked
         validateGapsAreFree(proposerGap, acceptorGap);
+
+        // The owner of the acceptor gap is studying: they are hidden from the matches → 422
+        if (gapRepository.isGapInStudyPeriod(acceptorGapId, LocalDateTime.now())) {
+            throw new IllegalStateException("Esta persona está en modo estudio y no recibe solicitudes ahora");
+        }
 
         // Only one live request between the same two gaps
         if (matchRepository.existsBetweenGapsAndStatusIn(proposerGapId, acceptorGapId, OPEN_REQUEST_STATUSES)) {

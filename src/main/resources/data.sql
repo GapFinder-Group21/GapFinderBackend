@@ -14145,6 +14145,28 @@ WHERE o.end_time < LOCALTIMESTAMP
            THEN o.id % 2 = 0
            ELSE o.id % 4 = 0 END
   AND (SELECT go FROM seed_run);
+-- ---------- study mode for the BQ 15 (For each gap duration range, what percentage of gaps have study mode activated?)
+-- Study periods of the seed students that cover some of their gaps that already ended. The share grows with the
+-- length of the gap (8 % under 1 h, 15 % from 1 to 2 h, 28 % from 2 to 3 h, 40 % from 3 h), so the four columns show
+-- different values and some pass the 20 % of the decision of the BQ.
+-- Each period is exactly the time of its gap, so it crosses that gap and no other gap of the student (the BQ crosses
+-- by time and user, never by gap id). It must stay before the cleanup of seed_run
+INSERT INTO study_periods (user_id, start_time, end_time, gap_id, client_id, created_at)
+SELECT g.user_id, g.start_time, g.end_time, g.id, 'seed-study-' || g.id,
+       LEAST(g.start_time - INTERVAL '1 hour', LOCALTIMESTAMP)
+FROM gaps g
+JOIN users u ON u.id = g.user_id
+WHERE g.end_time <= LOCALTIMESTAMP
+  AND u.password_hash = '$2a$10$SkID9TwSPunoci1Ru0/Dj.oXIEnTVH7JsXv4Y9W1HslZogKZgVgP.'
+  AND (hashtext('study-' || g.id) & 2147483647) % 100 <
+      CASE
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 60 THEN 8
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 120 THEN 15
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 180 THEN 28
+          ELSE 40
+      END
+  AND (SELECT go FROM seed_run)
+ON CONFLICT DO NOTHING;
 -- ---------- temporary tables cleanup
 DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;

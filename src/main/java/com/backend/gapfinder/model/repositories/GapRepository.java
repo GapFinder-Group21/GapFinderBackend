@@ -2,6 +2,7 @@ package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.models.GapModel;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
+import com.backend.gapfinder.model.repositories.projections.StudyModeByGapDurationProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -167,5 +168,32 @@ public interface GapRepository extends JpaRepository<GapModel, Long> {
             @Param("to") LocalDateTime to
     );
 
+    // BQ 15 INDIVIDUAL TYPE 3
+    // Finished gaps (end_time up to now) split by duration in minutes: '<60', '60-120', '120-180' and '180+'
+    // (the same limits as BQ 4: a gap of exactly 3 hours is in '180+'), with how many of them have study mode
+    // A gap has study mode when its owner has a study period that crosses it (sp.start_time < g.end_time AND
+    // sp.end_time > g.start_time). The period is matched by time and user, never by gap id: the id of a period is only
+    // informational and the periods of "studying now" have none. EXISTS counts a gap once however many periods cross it
+    // The gaps that have not finished are left out: the user may still turn the study mode on
+    // It uses all the finished gaps (no :since). A range without finished gaps does not appear (the service adds it with 0)
+    @Query(value = """
+        SELECT CASE
+                WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 60 THEN '<60'
+                WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 120 THEN '60-120'
+                WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 180 THEN '120-180'
+                ELSE '180+'
+            END AS "durationRange",
+            CAST(COUNT(*) AS bigint) AS "total",
+            CAST(SUM(CASE WHEN EXISTS (
+                    SELECT 1 FROM study_periods sp
+                    WHERE sp.user_id = g.user_id
+                      AND sp.start_time < g.end_time
+                      AND sp.end_time > g.start_time
+                ) THEN 1 ELSE 0 END) AS bigint) AS "withStudyMode"
+        FROM gaps g
+        WHERE g.end_time <= LOCALTIMESTAMP
+        GROUP BY 1
+        """, nativeQuery = true)
+    List<StudyModeByGapDurationProjection> countStudyModeByGapDuration();
 
     }

@@ -9,6 +9,7 @@ import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
@@ -261,4 +262,18 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 14 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 15 INDIVIDUAL TYPE 3 ====================
+
+    // For each gap duration range (less than 1 h, 1-2 h, 2-3 h, more than 3 h), what percentage of gaps have study mode activated?
+    // Get the 4 ranges ('<60', '60-120', '120-180', '180+' minutes) with their share of finished gaps that have study mode,
+    // marking the highest one
+    // It uses all the finished gaps, so it has no since parameter
+    // GET /analytics/gaps/study-mode-by-duration
+    @GetMapping("/gaps/study-mode-by-duration")
+    public List<StudyModeByGapDurationDTO> getStudyModeByGapDuration() {
+        return analyticsService.getStudyModeByGapDuration();
+    }
+
+    // ================== END BQ 15 INDIVIDUAL TYPE 3 ==================
 }

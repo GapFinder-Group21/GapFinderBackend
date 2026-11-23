@@ -150,7 +150,7 @@
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
     <div class="filter-group">
-      <span>Period (BQ 2, 3, 5, 7, 8, 10, 11 and 12)</span>
+      <span>Period (BQ 2, 3, 5, 7, 8, 10, 11, 12 and 16)</span>
       <div class="period" id="period">
         <button data-days="7">Last 7 days</button>
         <button data-days="30" class="active">Last 30 days</button>
@@ -251,6 +251,11 @@
         <p class="question">For each gap duration range (less than 1 h, 1–2 h, 2–3 h, more than 3 h), what percentage of gaps have study mode activated?</p>
         <div id="bq15"></div>
         <p class="note">All time · finished gaps only</p>
+      </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 16</div>
+        <p class="question">Do matches with a higher compatibility score receive better ratings?</p>
+        <div id="bq16"></div>
       </div>
     </div>
   </section>
@@ -1304,6 +1309,63 @@
     });
   }
 
+  // BQ 16: headline (the best rated score range) and horizontal bars with the average stars of each score range
+  function renderBq16(rows) {
+    const box = document.getElementById('bq16');
+    if (!rows || rows.length === 0) {
+      clearChart('bq16');
+      return showEmpty(box);
+    }
+
+    // The backend always sends the 5 ranges in natural order, the ones without ratings too, and marks the best rated
+    // (none if no range has at least 5 ratings)
+    const best = rows.find(r => r.bestRated);
+    const total = rows.reduce((sum, r) => sum + r.ratings, 0);
+    const stars = value => `${Number(value).toFixed(2)} ★`;
+
+    box.innerHTML = `
+      <div class="hero">${best ? `${esc(best.range)} points` : 'No range to highlight'}</div>
+      <div class="hero-sub">${best
+        ? `Best rated · ${stars(best.averageStars)} on average (${best.ratings} ratings)`
+        : 'No score range has 5 ratings yet'} · ${total} ratings in total</div>
+      <div id="bq16Chart"></div>`;
+
+    drawChart('bq16', newCanvas(document.getElementById('bq16Chart'), barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => `${r.range} pts (n = ${r.ratings})`),
+        datasets: [{
+          data: rows.map(r => r.averageStars),
+          backgroundColor: rows.map(r => r.bestRated ? ACCENT : GRAY),
+          borderRadius: 4,
+          maxBarThickness: 28,
+          showValues: true,
+          formatValue: v => v > 0 ? stars(v) : 'no ratings'
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 70 } },
+        scales: {
+          x: { min: 0, max: 5, ticks: { stepSize: 1, callback: v => `${v} ★` }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Average stars: ${r.ratings > 0 ? stars(r.averageStars) : 'no ratings'}`, `Ratings: ${r.ratings}`];
+              }
+            }
+          }
+        }
+      }
+    });
+    box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the score range with the highest average stars, only among ranges with at least 5 ratings. The ranges are the same as in BQ 8. Only matches that were rated count.</p>');
+  }
+
   // Calls the backend once and redraws every card
   async function loadDashboard() {
     const myRequest = ++requestNumber;
@@ -1329,6 +1391,7 @@
       renderBq13(data.ratingsByStars);
       renderBq14(data.emptyTablesByPhoto);
       renderBq15(data.studyModeByGapDuration);
+      renderBq16(data.ratingByScoreRange);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;

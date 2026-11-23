@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -276,4 +277,19 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 15 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 16 INDIVIDUAL TYPE 3 ====================
+
+    // Do matches with a higher compatibility score receive better ratings?
+    // Get the 5 score ranges in natural order (the same as BQ 8) with their number of ratings and average stars,
+    // marking the best rated one
+    // GET /analytics/matches/rating-by-score?since=2026-09-01T00:00:00
+    @GetMapping("/matches/rating-by-score")
+    public List<RatingByScoreRangeDTO> getRatingByScoreRange(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return analyticsService.getRatingByScoreRange(since);
+    }
+
+    // ================== END BQ 16 INDIVIDUAL TYPE 3 ==================
 }

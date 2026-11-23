@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -64,6 +65,8 @@ public class AnalyticsFacade {
         dashboard.setRatingsByStars(getRatingsByStarsOrEmpty());
         dashboard.setEmptyTablesByPhoto(getEmptyTablesByPhotoOrEmpty());
         dashboard.setStudyModeByGapDuration(getStudyModeByGapDurationOrEmpty());
+        // BQ 16 uses the period, so it receives the start date
+        dashboard.setRatingByScoreRange(getRatingByScoreRangeOrEmpty(start));
 
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
@@ -197,6 +200,16 @@ public class AnalyticsFacade {
             return analyticsService.getStudyModeByGapDuration();
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay gaps terminados");
+            return List.of();
+        }
+    }
+
+    // BQ 16: returns an empty list instead of failing when there are no match ratings since the given date
+    private List<RatingByScoreRangeDTO> getRatingByScoreRangeOrEmpty(LocalDateTime since) {
+        try {
+            return analyticsService.getRatingByScoreRange(since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay calificaciones de matches desde {}", since);
             return List.of();
         }
     }

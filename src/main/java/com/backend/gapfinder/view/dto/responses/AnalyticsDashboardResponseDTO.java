@@ -6,6 +6,7 @@ import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -76,4 +77,8 @@ public class AnalyticsDashboardResponseDTO {
     // in that order, the highest one marked; all the finished gaps, not filtered by the period
     // (empty if there are no finished gaps)
     private List<StudyModeByGapDurationDTO> studyModeByGapDuration;
+
+    // BQ 16: average stars of the match ratings in each score range ('0-50', '50-100', '100-150', '150-200', '200+' points),
+    // in that order, the best rated one marked; filtered by the period (empty if there are no match ratings)
+    private List<RatingByScoreRangeDTO> ratingByScoreRange;
 }

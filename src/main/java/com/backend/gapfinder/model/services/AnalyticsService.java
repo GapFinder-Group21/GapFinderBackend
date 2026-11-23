@@ -14,6 +14,7 @@ import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityRankingBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
 import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
 import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
@@ -37,6 +38,7 @@ import com.backend.gapfinder.model.repositories.projections.InterestDemandGapPro
 import com.backend.gapfinder.model.repositories.projections.LocationUpdateSummaryProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
+import com.backend.gapfinder.model.repositories.projections.RatingByScoreRangeProjection;
 import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
 import com.backend.gapfinder.model.repositories.projections.StudyModeByGapDurationProjection;
@@ -925,4 +927,58 @@ public class AnalyticsService {
     }
 
     // ================== END BQ 15 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 16 INDIVIDUAL TYPE 3 ====================
+    // Sofia Arias: Do matches with a higher compatibility score receive better ratings?
+
+    // Days used as the default start date, the same as the dashboard
+    private static final int DEFAULT_RATING_BY_SCORE_DAYS_BACK = 30;
+
+    // Number of ratings and average stars of each score range, in natural order (the empty ones too), marking the best rated
+    // It uses the same score ranges and the same minimum to highlight as BQ 8, so both questions agree
+    // It decides about the scoring algorithm: if the higher ranges are not rated better, the score does not predict a good match
+    // since: optional, last 30 days if null (the date the rating was given)
+    @Transactional(readOnly = true)
+    public List<RatingByScoreRangeDTO> getRatingByScoreRange(LocalDateTime since) {
+        LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_RATING_BY_SCORE_DAYS_BACK);
+
+        log.info("Inicia proceso de consultar las estrellas promedio de los matches por rango de score desde {}", start);
+
+        // Ratings per range, with 0 for the ranges that do not appear in the query
+        Map<String, RatingByScoreRangeProjection> rowsByRange = new LinkedHashMap<>();
+        matchRepository.countRatingsByScoreRange(start).forEach(row -> rowsByRange.put(row.getScoreRange(), row));
+
+        List<RatingByScoreRangeDTO> ranges = SCORE_RANGES.stream()
+                .map(range -> {
+                    RatingByScoreRangeProjection row = rowsByRange.get(range);
+                    long ratings = row != null && row.getRatings() != null ? row.getRatings() : 0L;
+                    // An empty range has no average: 0 instead of a missing value
+                    double averageStars = ratings == 0 || row.getAverageStars() == null ? 0.0 : row.getAverageStars();
+                    return new RatingByScoreRangeDTO(range, ratings, averageStars, false);
+                })
+                .toList();
+
+        if (ranges.stream().mapToLong(RatingByScoreRangeDTO::ratings).sum() == 0) {
+            throw new NotFoundException("No hay calificaciones de matches desde la fecha indicada");
+        }
+
+        // Highest average among the ranges with enough ratings to be reliable (one 5-star rating is not more
+        // meaningful than 40 ratings averaging 4.6); the first one in natural order wins a tie
+        // (the minimum is the same constant as BQ 8, which counts answered proposals there)
+        String bestRange = ranges.stream()
+                .filter(stat -> stat.ratings() >= MIN_ANSWERED_TO_HIGHLIGHT)
+                .max(Comparator.comparingDouble(RatingByScoreRangeDTO::averageStars))
+                .map(RatingByScoreRangeDTO::range)
+                .orElse(null);
+
+        List<RatingByScoreRangeDTO> result = ranges.stream()
+                .map(stat -> new RatingByScoreRangeDTO(stat.range(), stat.ratings(), stat.averageStars(),
+                        stat.range().equals(bestRange)))
+                .toList();
+
+        log.info("Termina proceso de consultar las estrellas promedio de los matches por rango de score desde {}", start);
+        return result;
+    }
+
+    // ================== END BQ 16 INDIVIDUAL TYPE 3 ==================
 }

@@ -2,6 +2,7 @@ package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.repositories.projections.RatingByScoreRangeProjection;
 import com.backend.gapfinder.model.repositories.projections.RatingStarsProjection;
 import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -86,4 +87,28 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
         GROUP BY r.stars
         """, nativeQuery = true)
     List<RatingStarsProjection> countRatingsByStars();
+
+    // BQ 16 INDIVIDUAL TYPE 3
+    // Match ratings given since :since per range of match score, with how many there are and their average stars
+    // The ranges are the same as BQ 8 (the score is minutes of overlap plus bonuses, so they go up by 50 points)
+    // :since filters by when the rating was given (created_at)
+    // Only matches that have a rating count (the join), and a null score has no range, so it is left out
+    // Ranges without ratings do not appear in the result (the service adds them with 0)
+    @Query(value = """
+        SELECT CASE
+                WHEN m.score < 50 THEN '0-50'
+                WHEN m.score < 100 THEN '50-100'
+                WHEN m.score < 150 THEN '100-150'
+                WHEN m.score < 200 THEN '150-200'
+                ELSE '200+'
+            END AS "scoreRange",
+            CAST(COUNT(*) AS bigint) AS "ratings",
+            CAST(AVG(r.stars) AS float8) AS "averageStars"
+        FROM match_ratings r
+        JOIN matches m ON m.id = r.match_id
+        WHERE m.score IS NOT NULL
+          AND r.created_at >= :since
+        GROUP BY 1
+        """, nativeQuery = true)
+    List<RatingByScoreRangeProjection> countRatingsByScoreRange(@Param("since") LocalDateTime since);
 }

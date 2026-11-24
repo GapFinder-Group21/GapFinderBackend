@@ -2,6 +2,8 @@
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
+import com.backend.gapfinder.view.dto.ChatDeliveryTimeStatsDTO;
+import com.backend.gapfinder.model.services.ChatDeliveryReportService;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
@@ -32,15 +34,19 @@ import org.springframework.web.bind.annotation.*;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final ChatDeliveryReportService chatDeliveryReportService;
 
-    public AnalyticsController(AnalyticsService analyticsService) {
+    public AnalyticsController(AnalyticsService analyticsService, ChatDeliveryReportService chatDeliveryReportService) {
         this.analyticsService = analyticsService;
+        this.chatDeliveryReportService = chatDeliveryReportService;
     }
 
     // ==================== BQ 1 GRUPAL TYPE 1 ====================
 
-    // How many location updates per hour does the backend receive from each student while they are inside a campus building?
-    // Get the updates per student-hour (average, median, max and distribution) and the rate of each student
+    // How many location updates per hour does the backend receive from each student
+    // while they are inside a campus building?
+    // Get the updates per student-hour (average, median, max and distribution) and
+    // the rate of each student
     // GET /analytics/location-updates/per-hour?since=2026-09-01T00:00:00&limit=10
     @GetMapping("/location-updates/per-hour")
     public LocationUpdateRateStatsDTO getLocationUpdatesPerHour(
@@ -52,7 +58,8 @@ public class AnalyticsController {
 
     // ================== END BQ 1 GRUPAL TYPE 1 ==================
 
-    // BQ 2: At which step do students most often leave the Open Table creating process?
+    // BQ 2: At which step do students most often leave the Open Table creating
+    // process?
     // Get the creation step with the highest abandonment rate since the given date
     // GET /analytics/open-tables/most-abandoned-step?since=2026-09-01T00:00:00
     @GetMapping("/open-tables/most-abandoned-step")
@@ -210,7 +217,8 @@ public class AnalyticsController {
     // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
 
     // In which match score range are match proposals most often rejected?
-    // Get the 5 score ranges in natural order with their rejection rate, marking the highest one
+    // Get the 5 score ranges in natural order with their rejection rate, marking
+    // the highest one
     // GET /analytics/matches/rejection-by-score?since=2026-09-01T00:00:00
     @GetMapping("/matches/rejection-by-score")
     public List<RejectionByScoreRangeDTO> getRejectionByScoreRange(
@@ -240,8 +248,10 @@ public class AnalyticsController {
 
     // ==================== BQ 13 INDIVIDUAL TYPE 3 ====================
 
-    // Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5 stars?
-    // Get the 5 numbers of stars in order with their share of the ratings, marking the most common one
+    // Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5
+    // stars?
+    // Get the 5 numbers of stars in order with their share of the ratings, marking
+    // the most common one
     // It uses the whole history, so it has no since parameter
     // GET /analytics/matches/ratings-by-stars
     @GetMapping("/matches/ratings-by-stars")
@@ -253,8 +263,10 @@ public class AnalyticsController {
 
     // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
 
-    // What percentage of open tables with and without a photo ended with no participants?
-    // Get the 2 groups (WITH_PHOTO, WITHOUT_PHOTO) with their share of finished tables nobody joined, marking the highest one
+    // What percentage of open tables with and without a photo ended with no
+    // participants?
+    // Get the 2 groups (WITH_PHOTO, WITHOUT_PHOTO) with their share of finished
+    // tables nobody joined, marking the highest one
     // It uses the whole history, so it has no since parameter
     // GET /analytics/open-tables/empty-by-photo
     @GetMapping("/open-tables/empty-by-photo")
@@ -266,8 +278,10 @@ public class AnalyticsController {
 
     // ==================== BQ 15 INDIVIDUAL TYPE 3 ====================
 
-    // For each gap duration range (less than 1 h, 1-2 h, 2-3 h, more than 3 h), what percentage of gaps have study mode activated?
-    // Get the 4 ranges ('<60', '60-120', '120-180', '180+' minutes) with their share of finished gaps that have study mode,
+    // For each gap duration range (less than 1 h, 1-2 h, 2-3 h, more than 3 h),
+    // what percentage of gaps have study mode activated?
+    // Get the 4 ranges ('<60', '60-120', '120-180', '180+' minutes) with their
+    // share of finished gaps that have study mode,
     // marking the highest one
     // It uses all the finished gaps, so it has no since parameter
     // GET /analytics/gaps/study-mode-by-duration
@@ -281,7 +295,8 @@ public class AnalyticsController {
     // ==================== BQ 16 INDIVIDUAL TYPE 3 ====================
 
     // Do matches with a higher compatibility score receive better ratings?
-    // Get the 5 score ranges in natural order (the same as BQ 8) with their number of ratings and average stars,
+    // Get the 5 score ranges in natural order (the same as BQ 8) with their number
+    // of ratings and average stars,
     // marking the best rated one
     // GET /analytics/matches/rating-by-score?since=2026-09-01T00:00:00
     @GetMapping("/matches/rating-by-score")
@@ -292,4 +307,19 @@ public class AnalyticsController {
     }
 
     // ================== END BQ 16 INDIVIDUAL TYPE 3 ==================
+    // ==================== BQ 17 INDIVIDUAL TYPE 1 ====================
+
+    // How long does a chat message take from the tap on Send until the server saves
+    // it, when it goes out at once
+    // and when it waits in the offline queue?
+    // GET /analytics/chat/delivery-time?since=2026-11-01T00:00:00
+    @GetMapping("/chat/delivery-time")
+    public ChatDeliveryTimeStatsDTO getChatDeliveryTime(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime since) {
+
+        return chatDeliveryReportService.getDeliveryTime(since);
+    }
+
+    // ================== END BQ 17 INDIVIDUAL TYPE 1 ==================
+
 }

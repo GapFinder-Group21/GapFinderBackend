@@ -1,6 +1,6 @@
 package com.backend.gapfinder.model.repositories.projections;
 
-// Projection with how many times a student chose an activity when creating open tables (BQ 6)
+// Projection with how many times a student chose an activity when creating open tables (BQ 5)
 public interface StudentActivityUsageProjection {
 
     // Unique identifier of the activity

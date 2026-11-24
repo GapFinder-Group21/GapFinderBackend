@@ -168,6 +168,21 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // Remove an interest from an existing user (idempotent: nothing happens if the user does not have it)
+    @Transactional
+    public void removeInterest(Long userId, Long interestId) {
+        UserModel user = getById(userId);
+
+        if (user.getInterests() == null) {
+            return;
+        }
+
+        boolean removed = user.getInterests().removeIf(i -> interestId.equals(i.getId()));
+        if (removed) {
+            userRepository.save(user);
+        }
+    }
+
     // Search users by name
     @Transactional
     public List<UserModel> searchByName(String name) {

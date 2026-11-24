@@ -6,7 +6,7 @@ public interface RejectionByScoreRangeProjection {
     // Score range: '0-50', '50-100', '100-150', '150-200' or '200+'
     String getScoreRange();
 
-    // Matches in the range that were answered (ACCEPTED, REJECTED or COMPLETED)
+    // Matches in the range that a user answered (ACCEPTED, COMPLETED or REJECTED with responded_at)
     Long getTotal();
 
     // Matches in the range that were rejected

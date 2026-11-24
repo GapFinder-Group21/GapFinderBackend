@@ -1,25 +1,30 @@
-package com.backend.gapfinder.model.services;
+﻿package com.backend.gapfinder.model.services;
 
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;
 import com.backend.gapfinder.view.dto.responses.GapCoverageResponseDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
-import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;<<<<<<<HEAD=======
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRangeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
-import com.backend.gapfinder.view.dto.StudentLocationUpdateRateBasicDTO;>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
+import com.backend.gapfinder.view.dto.StudentLocationUpdateRateBasicDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityRankingBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
-import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;<<<<<<<HEAD=======
-import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
+import com.backend.gapfinder.view.dto.UserPreferredActivityBasicDTO;
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
+import com.backend.gapfinder.model.models.MatchRatingModel;
 import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
@@ -28,14 +33,15 @@ import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
 import com.backend.gapfinder.model.repositories.projections.AppOpenDelayProjection;
-import com.backend.gapfinder.model.repositories.projections.InterestDemandGapProjection;<<<<<<<HEAD
-import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
-import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;=======
+import com.backend.gapfinder.model.repositories.projections.EmptyTablesByPhotoProjection;
+import com.backend.gapfinder.model.repositories.projections.InterestDemandGapProjection;
 import com.backend.gapfinder.model.repositories.projections.LocationUpdateSummaryProjection;
 import com.backend.gapfinder.model.repositories.projections.PreferredActivityTotalsProjection;
 import com.backend.gapfinder.model.repositories.projections.StudentActivityUsageProjection;
-import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
+import com.backend.gapfinder.model.repositories.projections.RatingByScoreRangeProjection;
+import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import com.backend.gapfinder.model.repositories.projections.SharedInterestGroupProjection;
+import com.backend.gapfinder.model.repositories.projections.StudyModeByGapDurationProjection;
 import com.backend.gapfinder.model.repositories.projections.UnmatchedFreeTimeProjection;
 import com.backend.gapfinder.model.repositories.projections.UnusedActivityProjection;
 
@@ -44,6 +50,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -79,19 +86,15 @@ public class AnalyticsService {
         this.interestRepository = interestRepository;
     }
 
-    // ==================== BQ 2 TYPE 1 GRUPAL ====================
-    // How many location updates per hour does the backend receive from each student
-    // while they are inside a campus building?
+    // ==================== BQ 1 TYPE 1 GRUPAL ====================
+    // How many location updates per hour does the backend receive from each student while they are inside a campus building?
 
     // Ranges of updates per student-hour in natural order
     private static final List<String> LOCATION_UPDATE_RANGES = List.of("1", "2-5", "6-15", "16-30", "31+");
 
-    // Location updates per hour received from the students while inside a campus
-    // building: summary of all the
-    // student-hours, their distribution per range and the rate of each student
-    // (highest first)
-    // since: optional, whole history if null. limit: optional, all the students if
-    // null
+    // Location updates per hour received from the students while inside a campus building: summary of all the
+    // student-hours, their distribution per range and the rate of each student (highest first)
+    // since: optional, whole history if null. limit: optional, all the students if null
     @Transactional(readOnly = true)
     public LocationUpdateRateStatsDTO getLocationUpdatesPerHour(LocalDateTime since, Integer limit) {
         LocalDateTime start = since != null ? since : HISTORY_START;
@@ -108,8 +111,7 @@ public class AnalyticsService {
             throw new NotFoundException("No hay actualizaciones de ubicación registradas desde la fecha indicada");
         }
 
-        // Student-hours per range, with 0 for the ranges that do not appear in the
-        // query
+        // Student-hours per range, with 0 for the ranges that do not appear in the query
         Map<String, Long> hoursByRange = new LinkedHashMap<>();
         LOCATION_UPDATE_RANGES.forEach(range -> hoursByRange.put(range, 0L));
         locationLogRepository.countStudentHoursByUpdatesRange(start)
@@ -143,9 +145,9 @@ public class AnalyticsService {
                 students);
     }
 
-    // ================== END BQ 2 TYPE 1 GRUPAL ==================
+    // ================== END BQ 1 TYPE 1 GRUPAL ==================
 
-    // ==================== BQ 3 TYPE 2 GRUPAL ====================
+    // ==================== BQ 2 TYPE 2 GRUPAL ====================
     // At which step do students most often leave the Open Table creating process?
 
     // Retrieves the creation step with the highest abandonment rate since the given
@@ -161,9 +163,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 3 TYPE 2 GRUPAL ==================
+    // ================== END BQ 2 TYPE 2 GRUPAL ==================
 
-    // ==================== BQ 5 ====================
+    // ==================== BQ 4 ====================
     // Miguel Cabrera: Which gap durations have the lowest match coverage?
 
     // Retrieves match coverage metrics grouped by gap duration buckets sorted by
@@ -204,9 +206,9 @@ public class AnalyticsService {
         return matchedMinutes / gapMinutes * 100;
     }
 
-    // ================== END BQ 5 ==================
+    // ================== END BQ 4 ==================
 
-    // ==================== BQ 7 ====================
+    // ==================== BQ 6 ====================
     // Sofia Arias: Which connection method leads to more accepted meetups: open
     // tables or matches?
 
@@ -247,9 +249,9 @@ public class AnalyticsService {
         return (double) completed / total * 100;
     }
 
-    // ================== END BQ 7 ==================
+    // ================== END BQ 6 ==================
 
-    // ==================== BQ 12 INDIVIDUAL ====================
+    // ==================== BQ 10 INDIVIDUAL ====================
     // Sofia Morato: Which careers and semesters have the highest rate of unmatched
     // free time on campus?
 
@@ -314,9 +316,9 @@ public class AnalyticsService {
                 rate);
     }
 
-    // ================== END BQ 12 INDIVIDUAL ==================
+    // ================== END BQ 10 INDIVIDUAL ==================
 
-    // ==================== BQ 11 ====================
+    // ==================== BQ 9 ====================
     // Joel: Where do the most students have free time on campus?
 
     // Retrieves student presence and free time metrics aggregated by campus
@@ -338,9 +340,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 11 ==================
+    // ================== END BQ 9 ==================
 
-    // ==================== BQ 13 INDIVIDUAL ====================
+    // ==================== BQ 11 INDIVIDUAL ====================
     // Daniela Martinez: Which interests are shared by the largest groups of
     // students who are free at the same time?
 
@@ -399,9 +401,9 @@ public class AnalyticsService {
                 row.getStudentsWithInterest() != null ? row.getStudentsWithInterest() : 0L);
     }
 
-    // ================== END BQ 13 INDIVIDUAL ==================
+    // ================== END BQ 11 INDIVIDUAL ==================
 
-    // ==================== BQ 4 INDIVIDUAL TYPE 2 ====================
+    // ==================== BQ 3 INDIVIDUAL TYPE 2 ====================
     // Sofia Morato: How long after a gap starts do students open the app?
 
     // Ranges of minutes in natural order; the last one groups the gaps where the
@@ -496,9 +498,9 @@ public class AnalyticsService {
                 userAverage, userGaps, offsetMinutes, source);
     }
 
-    // ================== END BQ 4 INDIVIDUAL TYPE 2 ==================
+    // ================== END BQ 3 INDIVIDUAL TYPE 2 ==================
 
-    // ==================== BQ 6 INDIVIDUAL TYPE 2 ====================
+    // ==================== BQ 5 INDIVIDUAL TYPE 2 ====================
     // Joel: Which activity does the student choose most often when creating open
     // tables,
     // so the app can preselect it the next time they create one?
@@ -525,6 +527,12 @@ public class AnalyticsService {
         PreferredActivityTotalsProjection totals = openTableRepository.findPreferredActivityTotals(start);
         long totalTables = totals.getTables() != null ? totals.getTables() : 0L;
         if (totalTables == 0) {
+            // A user without tables in the period is a normal answer (no favorite yet), not an error;
+            // only the dashboard has nothing to show
+            if (userId != null) {
+                log.info("Termina proceso de consultar la actividad preferida: sin open tables desde {}", start);
+                return new PreferredActivityStatsDTO(List.of(), 0L, 0L, 0L, 0L, null, null);
+            }
             throw new NotFoundException("No hay open tables con actividad creadas desde la fecha indicada");
         }
 
@@ -563,16 +571,17 @@ public class AnalyticsService {
         return new UserPreferredActivityBasicDTO(row.getActivityId(), row.getActivityName(), row.getTimesChosen());
     }
 
-    // ================== END BQ 6 INDIVIDUAL TYPE 2 ==================
-    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
+    // ================== END BQ 5 INDIVIDUAL TYPE 2 ==================
+    // ==================== BQ 7 INDIVIDUAL TYPE 3 ====================
     // Sofia Morato: Which activities are never or rarely chosen when creating open
     // tables?
 
-    // An activity chosen in less than this percentage of the open tables of the
-    // period is RARELY chosen
-    // 5 % is a simple, easy to explain cut: an activity that gets less than 1 of
-    // every 20 open tables is clearly ignored
-    private static final double RARELY_CHOSEN_THRESHOLD_PERCENT = 5.0;
+    // An activity is RARELY chosen when its share of the open tables is less than this
+    // fraction of an even share (100 % / number of activities). With a fixed 5 % and 49
+    // activities almost all of them would be RARELY even if the tables were spread evenly
+    // (an even share is 2.04 %), so the cut depends on how many activities there are:
+    // half of the even share, for example 1.02 % with 49 activities
+    private static final double RARELY_CHOSEN_FRACTION_OF_EVEN_SHARE = 0.5;
 
     // Days used as the default start date, the same as the dashboard
     private static final int DEFAULT_ACTIVITY_DAYS_BACK = 30;
@@ -603,8 +612,9 @@ public class AnalyticsService {
                 .sum();
 
         // The query already sorts them from the least to the most chosen
+        int activitiesCount = rows.size();
         List<UnusedActivityStatsDTO> stats = rows.stream()
-                .map(row -> toUnusedActivityStats(row, totalTables))
+                .map(row -> toUnusedActivityStats(row, totalTables, activitiesCount))
                 .limit(limit != null ? limit : Long.MAX_VALUE)
                 .toList();
 
@@ -614,18 +624,10 @@ public class AnalyticsService {
 
     // Builds the statistics of an activity with its share of the open tables and
     // its classification
-    private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables) {
+    private UnusedActivityStatsDTO toUnusedActivityStats(UnusedActivityProjection row, long totalTables,
+                                                         int activitiesCount) {
         long tables = row.getOpenTables() != null ? row.getOpenTables() : 0L;
         double percentage = totalTables == 0 ? 0.0 : (double) tables / totalTables * 100;
-
-        String classification;
-        if (tables == 0) {
-            classification = "NEVER";
-        } else if (percentage < RARELY_CHOSEN_THRESHOLD_PERCENT) {
-            classification = "RARELY";
-        } else {
-            classification = "OK";
-        }
 
         return new UnusedActivityStatsDTO(
                 row.getActivityId(),
@@ -633,26 +635,38 @@ public class AnalyticsService {
                 row.getInterestName(),
                 tables,
                 percentage,
-                classification);
+                classifyActivity(tables, percentage, activitiesCount));
     }
 
-    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
+    // NEVER: no open table used it. RARELY: its share is under half of an even share.
+    // OK: everything else
+    static String classifyActivity(long tables, double percentage, int activitiesCount) {
+        if (tables == 0) {
+            return "NEVER";
+        }
+        double evenShare = activitiesCount == 0 ? 0.0 : 100.0 / activitiesCount;
+        if (percentage < RARELY_CHOSEN_FRACTION_OF_EVEN_SHARE * evenShare) {
+            return "RARELY";
+        }
+        return "OK";
+    }
 
-    // ==================== BQ 10 INDIVIDUAL TYPE 3 ====================
-    // Miguel Cabrera: In which match score range are match proposals most often
-    // rejected?
+    // ================== END BQ 7 INDIVIDUAL TYPE 3 ==================
 
-    // Ranges of score in natural order; the score is minutes of overlap plus
-    // bonuses, so each range is 50 points
+    // ==================== BQ 8 INDIVIDUAL TYPE 3 ====================
+    // Miguel Cabrera: In which match score range are match proposals most often rejected?
+
+    // Ranges of score in natural order; the score is minutes of overlap plus bonuses, so each range is 50 points
     private static final List<String> SCORE_RANGES = List.of("0-50", "50-100", "100-150", "150-200", "200+");
 
     // Days used as the default start date, the same as the dashboard
     private static final int DEFAULT_REJECTION_DAYS_BACK = 30;
 
-    // Rejection rate of the 5 score ranges, in natural order (the empty ones too),
-    // marking the one with the highest rate
-    // It decides if the scoring algorithm has to be adjusted: a range that is
-    // rejected much more than the others scores wrong
+    // A range can only be highlighted with at least this many answered proposals
+    private static final long MIN_ANSWERED_TO_HIGHLIGHT = 5;
+
+    // Rejection rate of the 5 score ranges, in natural order (the empty ones too), marking the one with the highest rate
+    // It decides if the scoring algorithm has to be adjusted: a range that is rejected much more than the others scores wrong
     // since: optional, last 30 days if null
     @Transactional(readOnly = true)
     public List<RejectionByScoreRangeDTO> getRejectionByScoreRange(LocalDateTime since) {
@@ -679,10 +693,10 @@ public class AnalyticsService {
             throw new NotFoundException("No hay matches respondidos desde la fecha indicada");
         }
 
-        // Highest rate among the ranges with rejections (the first one in natural order
-        // wins a tie)
+        // Highest rate among the ranges with rejections and enough answered proposals to be reliable
+        // (1 of 1 rejected is not more meaningful than 40 of 50); the first one in natural order wins a tie
         String highestRange = ranges.stream()
-                .filter(stat -> stat.rejected() > 0)
+                .filter(stat -> stat.rejected() > 0 && stat.total() >= MIN_ANSWERED_TO_HIGHLIGHT)
                 .max(Comparator.comparingDouble(RejectionByScoreRangeDTO::rejectionPercentage))
                 .map(RejectionByScoreRangeDTO::range)
                 .orElse(null);
@@ -696,9 +710,9 @@ public class AnalyticsService {
         return result;
     }
 
-    // ================== END BQ 10 INDIVIDUAL TYPE 3 ==================
+    // ================== END BQ 8 INDIVIDUAL TYPE 3 ==================
 
-    // ==================== BQ 14 INDIVIDUAL ====================
+    // ==================== BQ 12 INDIVIDUAL ====================
     // Daniela Martinez: Which interests have the most students but the fewest open
     // tables created for their activities?
 
@@ -759,5 +773,212 @@ public class AnalyticsService {
                 demandRatio);
     }
 
-    // ================== END BQ 14 INDIVIDUAL ==================
+    // ================== END BQ 12 INDIVIDUAL ==================
+
+    // ==================== BQ 13 INDIVIDUAL TYPE 3 ====================
+    // Sofia Morato: Out of all the match ratings, what percentage received 1, 2, 3, 4 and 5 stars?
+
+    // Share of the match ratings with each number of stars, from 1 to 5 (the ones nobody gave too), marking the most common
+    // It decides about the matching algorithm: if 1 and 2 stars together pass 30 %, the matches it suggests are not working
+    // It uses the whole history, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<RatingStarsDistributionDTO> getRatingsByStars() {
+        log.info("Inicia proceso de consultar el porcentaje de calificaciones de matches por estrellas");
+
+        // Ratings per number of stars, with 0 for the ones that do not appear in the query
+        Map<Integer, Long> ratingsByStars = new LinkedHashMap<>();
+        matchRepository.countRatingsByStars().forEach(row -> ratingsByStars.put(row.getStars(),
+                row.getRatings() != null ? row.getRatings() : 0L));
+
+        long total = ratingsByStars.values().stream().mapToLong(Long::longValue).sum();
+        if (total == 0) {
+            throw new NotFoundException("No hay calificaciones de matches");
+        }
+
+        // The most given number of stars; on a tie the one with fewer stars wins, so the answer is always the same
+        int mostCommonStars = MatchRatingModel.MIN_STARS;
+        for (int stars = MatchRatingModel.MIN_STARS; stars <= MatchRatingModel.MAX_STARS; stars++) {
+            if (ratingsByStars.getOrDefault(stars, 0L) > ratingsByStars.getOrDefault(mostCommonStars, 0L)) {
+                mostCommonStars = stars;
+            }
+        }
+
+        List<RatingStarsDistributionDTO> result = new ArrayList<>();
+        for (int stars = MatchRatingModel.MIN_STARS; stars <= MatchRatingModel.MAX_STARS; stars++) {
+            long ratings = ratingsByStars.getOrDefault(stars, 0L);
+            double percentage = (double) ratings / total * 100;
+            result.add(new RatingStarsDistributionDTO(stars, ratings, percentage, stars == mostCommonStars));
+        }
+
+        log.info("Termina proceso de consultar el porcentaje de calificaciones de matches por estrellas");
+        return result;
+    }
+
+    // ================== END BQ 13 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 14 INDIVIDUAL TYPE 3 ====================
+    // Joel Niño: What percentage of open tables with and without a photo ended with no participants?
+
+    // Photo groups in the order the dashboard shows them
+    private static final List<String> PHOTO_GROUPS = List.of("WITH_PHOTO", "WITHOUT_PHOTO");
+
+    // Share of the finished open tables with and without photo that nobody joined, marking the group with the highest share
+    // It decides about the photo of the creation wizard: if the tables without photo end empty more often, the photo
+    // is promoted or made required; if there is no difference, the optional photo step is removed
+    // It uses the whole history, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<EmptyTablesByPhotoDTO> getEmptyTablesByPhoto() {
+        log.info("Inicia proceso de consultar el porcentaje de open tables vacías con y sin foto");
+
+        // Tables per group, with 0 for the group that does not appear in the query
+        Map<String, EmptyTablesByPhotoProjection> rowsByGroup = new LinkedHashMap<>();
+        openTableRepository.countEmptyTablesByPhoto().forEach(row -> rowsByGroup.put(row.getPhotoGroup(), row));
+
+        List<EmptyTablesByPhotoDTO> groups = PHOTO_GROUPS.stream()
+                .map(group -> {
+                    EmptyTablesByPhotoProjection row = rowsByGroup.get(group);
+                    long total = row != null && row.getTotal() != null ? row.getTotal() : 0L;
+                    long empty = row != null && row.getEmpty() != null ? row.getEmpty() : 0L;
+                    // A group without finished tables has no share: 0 instead of dividing by zero
+                    double percentage = total == 0 ? 0.0 : (double) empty / total * 100;
+                    return new EmptyTablesByPhotoDTO(group, total, empty, percentage, false);
+                })
+                .toList();
+
+        if (groups.stream().mapToLong(EmptyTablesByPhotoDTO::total).sum() == 0) {
+            throw new NotFoundException("No hay open tables terminadas");
+        }
+
+        // Highest share among the groups with empty tables; on a tie no group is marked, because neither is worse
+        double highestPercentage = groups.stream()
+                .filter(stat -> stat.empty() > 0)
+                .mapToDouble(EmptyTablesByPhotoDTO::emptyPercentage)
+                .max()
+                .orElse(-1);
+        List<String> highestGroups = groups.stream()
+                .filter(stat -> stat.empty() > 0 && stat.emptyPercentage() == highestPercentage)
+                .map(EmptyTablesByPhotoDTO::group)
+                .toList();
+        String highestGroup = highestGroups.size() == 1 ? highestGroups.get(0) : null;
+
+        List<EmptyTablesByPhotoDTO> result = groups.stream()
+                .map(stat -> new EmptyTablesByPhotoDTO(stat.group(), stat.total(), stat.empty(),
+                        stat.emptyPercentage(), stat.group().equals(highestGroup)))
+                .toList();
+
+        log.info("Termina proceso de consultar el porcentaje de open tables vacías con y sin foto");
+        return result;
+    }
+
+    // ================== END BQ 14 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 15 INDIVIDUAL TYPE 3 ====================
+    // Miguel Cabrera: For each gap duration range (less than 1 h, 1-2 h, 2-3 h, more than 3 h), what percentage of gaps have study mode activated?
+
+    // Duration ranges in minutes in the order the dashboard shows them, from the shortest to the longest gap
+    private static final List<String> STUDY_MODE_RANGES = List.of("<60", "60-120", "120-180", "180+");
+
+    // Share of the finished gaps of each duration range that have study mode, marking the range with the highest share
+    // It decides about study mode: it is suggested only in the ranges that pass 20 %, and if no range reaches 10 %
+    // the feature is removed
+    // It uses all the finished gaps, so it does not receive a start date
+    @Transactional(readOnly = true)
+    public List<StudyModeByGapDurationDTO> getStudyModeByGapDuration() {
+        log.info("Inicia proceso de consultar el porcentaje de gaps con modo estudio por duración");
+
+        // Gaps per range, with 0 for the ranges that do not appear in the query
+        Map<String, StudyModeByGapDurationProjection> rowsByRange = new LinkedHashMap<>();
+        gapRepository.countStudyModeByGapDuration().forEach(row -> rowsByRange.put(row.getDurationRange(), row));
+
+        List<StudyModeByGapDurationDTO> ranges = STUDY_MODE_RANGES.stream()
+                .map(range -> {
+                    StudyModeByGapDurationProjection row = rowsByRange.get(range);
+                    long total = row != null && row.getTotal() != null ? row.getTotal() : 0L;
+                    long withStudyMode = row != null && row.getWithStudyMode() != null ? row.getWithStudyMode() : 0L;
+                    // A range without finished gaps has no share: 0 instead of dividing by zero
+                    double percentage = total == 0 ? 0.0 : (double) withStudyMode / total * 100;
+                    return new StudyModeByGapDurationDTO(range, total, withStudyMode, percentage, false);
+                })
+                .toList();
+
+        if (ranges.stream().mapToLong(StudyModeByGapDurationDTO::totalGaps).sum() == 0) {
+            throw new NotFoundException("No hay gaps terminados");
+        }
+
+        // The range with the highest share among the ones that have study mode; on a tie the first one in the natural
+        // order wins, so the answer is always the same. If no gap has study mode, no range is marked
+        String highestRange = null;
+        double highestPercentage = 0;
+        for (StudyModeByGapDurationDTO stat : ranges) {
+            if (stat.gapsWithStudyMode() > 0 && (highestRange == null || stat.percentage() > highestPercentage)) {
+                highestRange = stat.range();
+                highestPercentage = stat.percentage();
+            }
+        }
+
+        String highest = highestRange;
+        List<StudyModeByGapDurationDTO> result = ranges.stream()
+                .map(stat -> new StudyModeByGapDurationDTO(stat.range(), stat.totalGaps(), stat.gapsWithStudyMode(),
+                        stat.percentage(), stat.range().equals(highest)))
+                .toList();
+
+        log.info("Termina proceso de consultar el porcentaje de gaps con modo estudio por duración");
+        return result;
+    }
+
+    // ================== END BQ 15 INDIVIDUAL TYPE 3 ==================
+
+    // ==================== BQ 16 INDIVIDUAL TYPE 3 ====================
+    // Sofia Arias: Do matches with a higher compatibility score receive better ratings?
+
+    // Days used as the default start date, the same as the dashboard
+    private static final int DEFAULT_RATING_BY_SCORE_DAYS_BACK = 30;
+
+    // Number of ratings and average stars of each score range, in natural order (the empty ones too), marking the best rated
+    // It uses the same score ranges and the same minimum to highlight as BQ 8, so both questions agree
+    // It decides about the scoring algorithm: if the higher ranges are not rated better, the score does not predict a good match
+    // since: optional, last 30 days if null (the date the rating was given)
+    @Transactional(readOnly = true)
+    public List<RatingByScoreRangeDTO> getRatingByScoreRange(LocalDateTime since) {
+        LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_RATING_BY_SCORE_DAYS_BACK);
+
+        log.info("Inicia proceso de consultar las estrellas promedio de los matches por rango de score desde {}", start);
+
+        // Ratings per range, with 0 for the ranges that do not appear in the query
+        Map<String, RatingByScoreRangeProjection> rowsByRange = new LinkedHashMap<>();
+        matchRepository.countRatingsByScoreRange(start).forEach(row -> rowsByRange.put(row.getScoreRange(), row));
+
+        List<RatingByScoreRangeDTO> ranges = SCORE_RANGES.stream()
+                .map(range -> {
+                    RatingByScoreRangeProjection row = rowsByRange.get(range);
+                    long ratings = row != null && row.getRatings() != null ? row.getRatings() : 0L;
+                    // An empty range has no average: 0 instead of a missing value
+                    double averageStars = ratings == 0 || row.getAverageStars() == null ? 0.0 : row.getAverageStars();
+                    return new RatingByScoreRangeDTO(range, ratings, averageStars, false);
+                })
+                .toList();
+
+        if (ranges.stream().mapToLong(RatingByScoreRangeDTO::ratings).sum() == 0) {
+            throw new NotFoundException("No hay calificaciones de matches desde la fecha indicada");
+        }
+
+        // Highest average among the ranges with enough ratings to be reliable (one 5-star rating is not more
+        // meaningful than 40 ratings averaging 4.6); the first one in natural order wins a tie
+        // (the minimum is the same constant as BQ 8, which counts answered proposals there)
+        String bestRange = ranges.stream()
+                .filter(stat -> stat.ratings() >= MIN_ANSWERED_TO_HIGHLIGHT)
+                .max(Comparator.comparingDouble(RatingByScoreRangeDTO::averageStars))
+                .map(RatingByScoreRangeDTO::range)
+                .orElse(null);
+
+        List<RatingByScoreRangeDTO> result = ranges.stream()
+                .map(stat -> new RatingByScoreRangeDTO(stat.range(), stat.ratings(), stat.averageStars(),
+                        stat.range().equals(bestRange)))
+                .toList();
+
+        log.info("Termina proceso de consultar las estrellas promedio de los matches por rango de score desde {}", start);
+        return result;
+    }
+
+    // ================== END BQ 16 INDIVIDUAL TYPE 3 ==================
 }

@@ -42,7 +42,7 @@ public class AuthService {
         }
 
         UserModel user = new UserModel();
-        user.setName(request.name());
+        user.setName(request.name().trim());
         user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setCareer(request.career());

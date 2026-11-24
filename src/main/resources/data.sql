@@ -13249,13 +13249,13 @@ FROM (VALUES
 ) AS v(email)
 JOIN users u ON u.email = v.email AND u.current_building_id IS NOT NULL
 WHERE (SELECT go FROM seed_run);
--- ---------- high-frequency location logs for the BQ 2 (How many location updates per hour does the backend
+-- ---------- high-frequency location logs for the BQ 1 (How many location updates per hour does the backend
 -- receive from each student while they are inside a campus building?)
 -- The logs above arrive about every 11 minutes. This block adds visits where the app sent the location every
 -- 2 minutes (what the Kotlin app does while the Open Tables tab is open) or every minute (the 2-minute refresh plus
 -- the GPS changes), so the BQ shows students with different update rates.
 -- - Weekdays of the last two weeks, one visit per day for 1 of every 10 users, in a building that depends on the user.
--- - Skips the moments inside the user's gaps, so the BQ 11 and the favorite building (they only use logs inside gaps)
+-- - Skips the moments inside the user's gaps, so the BQ 9 and the favorite building (they only use logs inside gaps)
 --   do not change.
 -- - Runs only once, also on databases where the seed already ran: its timestamps carry 17 microseconds, a mark
 --   the other rows do not have.
@@ -14106,6 +14106,67 @@ FROM (VALUES
 JOIN users u ON u.email = v.email
 WHERE (SELECT go FROM seed_run)
 AND NOT EXISTS (SELECT 1 FROM refresh_tokens x WHERE x.token = v.token);
+-- The rejected matches of the seed were answered by the student (BQ 8 ignores the rejected ones nobody answered)
+UPDATE matches m SET responded_at = LEAST(m.start_time - make_interval(hours => (m.id % 70)::int + 2)
+                                          + make_interval(mins => (m.id % 300)::int + 10), LOCALTIMESTAMP)
+FROM seed_matches s
+WHERE s.id = m.id AND m.status = 'REJECTED' AND (SELECT go FROM seed_run);
+-- ---------- notification types (runs on every startup)
+-- Hibernate creates a CHECK with the values of the enum when it creates the table, and ddl-auto=update
+-- does not change it later, so a new type (MATCH_RATED) would be refused. The enum already limits the values
+ALTER TABLE notifications DROP CONSTRAINT IF EXISTS notifications_type_check;
+-- ---------- match ratings ("Mis matches")
+-- In some finished matches the acceptor already rated, and in fewer both did,
+-- so the demo shows matches to rate, rated ones and ones where the other is still missing
+-- The stars go from 1 to 5 (most of them 4 or 5) so the BQ 13 shows the five columns
+INSERT INTO match_ratings (match_id, rater_id, rated_id, stars, comment, created_at)
+SELECT m.id, r.rater_id, r.rated_id,
+       (ARRAY[5, 4, 4, 3, 5, 2, 4, 1, 3, 5])[1 + ((m.id + r.rater_id) % 10)::int],
+       (ARRAY[NULL, 'Muy buena charla', 'Llegó puntual', 'Buen plan para el hueco', 'Repetiría', NULL])[1 + ((m.id + r.rater_id) % 6)::int],
+       LEAST(m.end_time + make_interval(hours => (m.id % 20)::int + 1), LOCALTIMESTAMP)
+FROM matches m
+JOIN seed_matches s ON s.id = m.id
+JOIN gaps pg ON pg.id = m.proposer_gap_id
+JOIN gaps ag ON ag.id = m.acceptor_gap_id
+CROSS JOIN LATERAL (VALUES (ag.user_id, pg.user_id, m.id % 3 = 0),
+                           (pg.user_id, ag.user_id, m.id % 6 = 0)) AS r(rater_id, rated_id, rates)
+WHERE m.status = 'COMPLETED' AND r.rates AND (SELECT go FROM seed_run)
+ON CONFLICT DO NOTHING;
+-- ---------- photos of finished open tables for the BQ 14 (What percentage of open tables with and without a photo
+-- ended with no participants?)
+-- The seed creates the open tables without photo, so some of the finished ones get one: half of the ones that
+-- someone joined and a quarter of the ones nobody joined, so the two groups of the BQ show different empty rates.
+-- Only finished tables, so the photo is never shown in the lists of active tables
+UPDATE open_tables o
+SET photo_url = '/uploads/open-tables/seed-' || o.id || '.jpg'
+WHERE o.end_time < LOCALTIMESTAMP
+  AND o.photo_url IS NULL
+  AND CASE WHEN EXISTS (SELECT 1 FROM participants_open_tables p WHERE p.open_table_id = o.id)
+           THEN o.id % 2 = 0
+           ELSE o.id % 4 = 0 END
+  AND (SELECT go FROM seed_run);
+-- ---------- study mode for the BQ 15 (For each gap duration range, what percentage of gaps have study mode activated?)
+-- Study periods of the seed students that cover some of their gaps that already ended. The share grows with the
+-- length of the gap (8 % under 1 h, 15 % from 1 to 2 h, 28 % from 2 to 3 h, 40 % from 3 h), so the four columns show
+-- different values and some pass the 20 % of the decision of the BQ.
+-- Each period is exactly the time of its gap, so it crosses that gap and no other gap of the student (the BQ crosses
+-- by time and user, never by gap id). It must stay before the cleanup of seed_run
+INSERT INTO study_periods (user_id, start_time, end_time, gap_id, client_id, created_at)
+SELECT g.user_id, g.start_time, g.end_time, g.id, 'seed-study-' || g.id,
+       LEAST(g.start_time - INTERVAL '1 hour', LOCALTIMESTAMP)
+FROM gaps g
+JOIN users u ON u.id = g.user_id
+WHERE g.end_time <= LOCALTIMESTAMP
+  AND u.password_hash = '$2a$10$SkID9TwSPunoci1Ru0/Dj.oXIEnTVH7JsXv4Y9W1HslZogKZgVgP.'
+  AND (hashtext('study-' || g.id) & 2147483647) % 100 <
+      CASE
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 60 THEN 8
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 120 THEN 15
+          WHEN EXTRACT(EPOCH FROM (g.end_time - g.start_time)) / 60 < 180 THEN 28
+          ELSE 40
+      END
+  AND (SELECT go FROM seed_run)
+ON CONFLICT DO NOTHING;
 -- ---------- temporary tables cleanup
 DROP TABLE IF EXISTS pg_temp.seed_friendships;
 DROP TABLE IF EXISTS pg_temp.seed_matches;
@@ -14115,7 +14176,7 @@ DROP TABLE IF EXISTS pg_temp.seed_run;
 -- The seed only creates the matches that already started when it is loaded, so the gaps that end
 -- afterwards would never get one. On every startup this creates the matches the seed users would have had
 -- in the gaps that already ended: 2-hour slots between 06:00 and 22:00, a user takes part in a slot with a
--- probability that depends on their career (BQ 12), and the users of a slot are paired by start time.
+-- probability that depends on their career (BQ 10), and the users of a slot are paired by start time.
 -- A user is skipped in a slot where they already have a match, so running it again creates nothing new.
 -- Only past matches (COMPLETED or REJECTED), no notifications.
 WITH seed_users AS (
@@ -14183,13 +14244,15 @@ pairs AS (
     WHERE p.rn % 2 = 1
       AND LEAST(p.free_to, a.free_to) - GREATEST(p.free_from, a.free_from) >= INTERVAL '30 minutes'
 )
-INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status)
+INSERT INTO matches (proposer_gap_id, acceptor_gap_id, start_time, end_time, score, status, responded_at)
 SELECT pr.proposer_gap_id, pr.acceptor_gap_id, pr.start_time,
     LEAST(pr.free_to, pr.start_time + make_interval(mins => (ARRAY[60, 90, 120, 120, 120])[pr.h % 5 + 1])),
     (60 + pr.h % 190)::float8,
-    CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END
+    CASE WHEN pr.h % 100 < 12 THEN 'REJECTED' ELSE 'COMPLETED' END,
+    -- The rejected ones were answered by the student (BQ 8 ignores the rejected ones nobody answered)
+    CASE WHEN pr.h % 100 < 12 THEN pr.start_time - INTERVAL '1 hour' + make_interval(mins => pr.h % 50) END
 FROM pairs pr;
--- ---------- app sessions (openings of the app) for the BQ 4 (How long after a gap starts do students open the app?)
+-- ---------- app sessions (openings of the app) for the BQ 3 (How long after a gap starts do students open the app?)
 -- Runs only while app_sessions is empty, so it does not duplicate rows on every startup.
 -- For ~90% of the finished gaps the student opens the app once inside the gap, at a delay that depends on the
 -- gap (hash of its id) and on the student (user id % 4: some students open it faster than others);

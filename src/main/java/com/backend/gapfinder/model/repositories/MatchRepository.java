@@ -1,7 +1,9 @@
-package com.backend.gapfinder.model.repositories;
+﻿package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.models.MatchModel;
+import com.backend.gapfinder.model.repositories.projections.RatingByScoreRangeProjection;
+import com.backend.gapfinder.model.repositories.projections.RatingStarsProjection;
 import com.backend.gapfinder.model.repositories.projections.RejectionByScoreRangeProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -13,52 +15,50 @@ import java.util.List;
 
 public interface MatchRepository extends JpaRepository<MatchModel, Long> {
 
-    // Check if a gap is used, as proposer or acceptor, by a match in any of the
-    // given statuses
+    // Check if a gap is used, as proposer or acceptor, by a match in any of the given statuses
     @Query("""
-            SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
-            FROM MatchModel m
-            WHERE (m.proposerGap.id = :gapId OR m.acceptorGap.id = :gapId)
-              AND m.status IN :statuses
-            """)
+        SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
+        FROM MatchModel m
+        WHERE (m.proposerGap.id = :gapId OR m.acceptorGap.id = :gapId)
+          AND m.status IN :statuses
+        """)
     boolean existsByGapAndStatusIn(@Param("gapId") Long gapId,
-            @Param("statuses") Collection<MatchStatusEnum> statuses);
+                                   @Param("statuses") Collection<MatchStatusEnum> statuses);
 
-    // Check if two gaps already have a match between them, in either direction, in
-    // any of the given statuses
+    // Check if two gaps already have a match between them, in either direction, in any of the given statuses
     @Query("""
-            SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
-            FROM MatchModel m
-            WHERE ((m.proposerGap.id = :gapA AND m.acceptorGap.id = :gapB)
-                OR (m.proposerGap.id = :gapB AND m.acceptorGap.id = :gapA))
-              AND m.status IN :statuses
-            """)
+        SELECT CASE WHEN COUNT(m) > 0 THEN true ELSE false END
+        FROM MatchModel m
+        WHERE ((m.proposerGap.id = :gapA AND m.acceptorGap.id = :gapB)
+            OR (m.proposerGap.id = :gapB AND m.acceptorGap.id = :gapA))
+          AND m.status IN :statuses
+        """)
     boolean existsBetweenGapsAndStatusIn(@Param("gapA") Long gapA,
-            @Param("gapB") Long gapB,
-            @Param("statuses") Collection<MatchStatusEnum> statuses);
+                                         @Param("gapB") Long gapB,
+                                         @Param("statuses") Collection<MatchStatusEnum> statuses);
 
     // Get all matches with a given status (used to auto-complete expired ones)
     List<MatchModel> findByStatus(MatchStatusEnum status);
 
-    // Get the matches with a given status whose acceptor gap belongs to the given
-    // user
+    // Get the matches with a given status whose acceptor gap belongs to the given user
     List<MatchModel> findByAcceptorGapUserIdAndStatus(Long userId, MatchStatusEnum status);
+
+    // Get the matches of a user, as proposer or as acceptor
+    List<MatchModel> findByProposerGapUserIdOrAcceptorGapUserId(Long proposerUserId, Long acceptorUserId);
 
     // Check if a gap is used by any match, as proposer or acceptor
     boolean existsByProposerGapIdOrAcceptorGapId(Long proposerGapId, Long acceptorGapId);
 
-    // Count the matches with a given status (BQ 7)
-    long countByStatus(MatchStatusEnum status);<<<<<<<HEAD=======
+    // Count the matches with a given status (BQ 6)
+    long countByStatus(MatchStatusEnum status);
 
-    // BQ 10 INDIVIDUAL TYPE 3
-    // Answered matches (ACCEPTED, REJECTED or COMPLETED) starting since :since per
-    // range of score, with how many were rejected
-    // The score is minutes of overlap (1 point per minute) plus bonuses of at most
-    // 35, so the ranges go up by 50 points
-    // A match that is still PENDING has no answer yet, and a null score has no
-    // range, so both are left out
-    // Ranges without matches do not appear in the result (the service adds them
-    // with 0)
+    // BQ 8 INDIVIDUAL TYPE 3
+    // Answered matches (ACCEPTED, COMPLETED or REJECTED by a user) starting since :since per range of score, with how many were rejected
+    // The score is minutes of overlap (1 point per minute) plus bonuses of at most 35, so the ranges go up by 50 points
+    // :since filters by when the request was made (created_at); old rows without it fall back to start_time
+    // A REJECTED match only counts if responded_at is set: without it nobody answered (it expired or the sender cancelled it)
+    // A match that is still PENDING has no answer yet, and a null score has no range, so all of them are left out
+    // Ranges without matches do not appear in the result (the service adds them with 0)
     @Query(value = """
         SELECT CASE
                 WHEN m.score < 50 THEN '0-50'
@@ -70,10 +70,45 @@ public interface MatchRepository extends JpaRepository<MatchModel, Long> {
             CAST(COUNT(*) AS bigint) AS "total",
             CAST(SUM(CASE WHEN m.status = 'REJECTED' THEN 1 ELSE 0 END) AS bigint) AS "rejected"
         FROM matches m
-        WHERE m.status IN ('ACCEPTED', 'REJECTED', 'COMPLETED')
+        WHERE (m.status IN ('ACCEPTED', 'COMPLETED') OR (m.status = 'REJECTED' AND m.responded_at IS NOT NULL))
           AND m.score IS NOT NULL
-          AND m.start_time >= :since
+          AND COALESCE(m.created_at, m.start_time) >= :since
         GROUP BY 1
         """, nativeQuery = true)
-    List<RejectionByScoreRangeProjection> countRejectionsByScoreRange(@Param("since") LocalDateTime since);>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
+    List<RejectionByScoreRangeProjection> countRejectionsByScoreRange(@Param("since") LocalDateTime since);
+
+    // BQ 13 INDIVIDUAL TYPE 3
+    // How many match ratings have each number of stars (1 to 5)
+    // It uses the whole history (no :since). A number of stars nobody gave does not appear (the service adds it with 0)
+    @Query(value = """
+        SELECT r.stars AS "stars",
+            CAST(COUNT(*) AS bigint) AS "ratings"
+        FROM match_ratings r
+        GROUP BY r.stars
+        """, nativeQuery = true)
+    List<RatingStarsProjection> countRatingsByStars();
+
+    // BQ 16 INDIVIDUAL TYPE 3
+    // Match ratings given since :since per range of match score, with how many there are and their average stars
+    // The ranges are the same as BQ 8 (the score is minutes of overlap plus bonuses, so they go up by 50 points)
+    // :since filters by when the rating was given (created_at)
+    // Only matches that have a rating count (the join), and a null score has no range, so it is left out
+    // Ranges without ratings do not appear in the result (the service adds them with 0)
+    @Query(value = """
+        SELECT CASE
+                WHEN m.score < 50 THEN '0-50'
+                WHEN m.score < 100 THEN '50-100'
+                WHEN m.score < 150 THEN '100-150'
+                WHEN m.score < 200 THEN '150-200'
+                ELSE '200+'
+            END AS "scoreRange",
+            CAST(COUNT(*) AS bigint) AS "ratings",
+            CAST(AVG(r.stars) AS float8) AS "averageStars"
+        FROM match_ratings r
+        JOIN matches m ON m.id = r.match_id
+        WHERE m.score IS NOT NULL
+          AND r.created_at >= :since
+        GROUP BY 1
+        """, nativeQuery = true)
+    List<RatingByScoreRangeProjection> countRatingsByScoreRange(@Param("since") LocalDateTime since);
 }

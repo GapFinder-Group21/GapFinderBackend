@@ -1,14 +1,16 @@
-package com.backend.gapfinder.view.dto.responses;
+﻿package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
-import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;<<<<<<<HEAD
-import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
-import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;=======
+import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
-import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
+import com.backend.gapfinder.view.dto.RatingByScoreRangeDTO;
+import com.backend.gapfinder.view.dto.RatingStarsDistributionDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
+import com.backend.gapfinder.view.dto.StudyModeByGapDurationDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
 
@@ -20,49 +22,63 @@ import java.util.List;
 @Data
 public class AnalyticsDashboardResponseDTO {
 
-    // BQ 2: location updates per hour received from the students while inside a
-    // building (null if there are none)
+    // BQ 1: location updates per hour received from the students while inside a building (null if there are none)
     private LocationUpdateRateStatsDTO locationUpdatesPerHour;
 
-    // BQ 3: creation step with the highest abandonment rate (null if there are no
-    // abandonments)
+    // BQ 2: creation step with the highest abandonment rate (null if there are no abandonments)
     private OpenTableAbandonmentStatsBasicDTO mostAbandonedStep;
 
-    // BQ 4: minutes after a gap starts at which the app is first opened, per range
+    // BQ 3: minutes after a gap starts at which the app is first opened, per range
     // (null if there are no finished gaps)
     private AppOpenDelayStatsDTO appOpenDelay;
 
-    // BQ 6: activities most chosen when creating open tables and the share of
+    // BQ 5: activities most chosen when creating open tables and the share of
     // students who always repeat the same one
     // (null if there are no open tables with activity in the period)
     private PreferredActivityStatsDTO preferredActivity;
 
-    // BQ 5: match coverage per gap duration, lowest coverage first
+    // BQ 4: match coverage per gap duration, lowest coverage first
     private List<GapCoverageResponseDTO> gapCoverageByDuration;
 
-    // BQ 7: completion percentage of matches vs open tables
+    // BQ 6: completion percentage of matches vs open tables
     private ConnectionMethodResponseDTO connectionMethods;
 
-    // BQ 11: student presence and free time per building
+    // BQ 9: student presence and free time per building
     private List<BuildingGapPresenceResponseDTO> buildingsByGapPresence;
 
-    // BQ 12: (career, semester) groups by unmatched free time rate, highest first
+    // BQ 10: (career, semester) groups by unmatched free time rate, highest first
     // (empty if there are no gaps)
     private List<UnmatchedFreeTimeStatsBasicDTO> unmatchedFreeTimeByCareerSemester;
 
-    // BQ 13: interests by the largest group of students free at the same time,
+    // BQ 11: interests by the largest group of students free at the same time,
     // largest first (empty if there is no data)
     private List<SharedInterestGroupStatsBasicDTO> interestsByLargestFreeGroup;
 
-    // BQ 8: all the activities from the least to the most chosen in open tables
+    // BQ 7: all the activities from the least to the most chosen in open tables
     // (empty if there are no activities)
     private List<UnusedActivityStatsDTO> unusedActivities;
 
-    // BQ 10: rejection rate of the 5 match score ranges in natural order, one
-    // marked as the highest (empty if there are no answered matches)
+    // BQ 8: rejection rate of the 5 match score ranges in natural order, one marked as the highest (empty if there are no answered matches)
     private List<RejectionByScoreRangeDTO> rejectionByScoreRange;
 
-    // BQ 14: interests with the most students but the fewest open tables,
+    // BQ 12: interests with the most students but the fewest open tables,
     // highest unmet demand first
     private List<InterestDemandGapBasicDTO> interestDemandGap;
+
+    // BQ 13: share of the match ratings with 1, 2, 3, 4 and 5 stars, in that order, the most common one marked;
+    // whole history, not filtered by the period (empty if there are no match ratings)
+    private List<RatingStarsDistributionDTO> ratingsByStars;
+
+    // BQ 14: share of the finished open tables with and without photo that nobody joined, WITH_PHOTO first,
+    // the highest one marked; whole history, not filtered by the period (empty if there are no finished open tables)
+    private List<EmptyTablesByPhotoDTO> emptyTablesByPhoto;
+
+    // BQ 15: share of the finished gaps with study mode in each duration range ('<60', '60-120', '120-180', '180+' minutes),
+    // in that order, the highest one marked; all the finished gaps, not filtered by the period
+    // (empty if there are no finished gaps)
+    private List<StudyModeByGapDurationDTO> studyModeByGapDuration;
+
+    // BQ 16: average stars of the match ratings in each score range ('0-50', '50-100', '100-150', '150-200', '200+' points),
+    // in that order, the best rated one marked; filtered by the period (empty if there are no match ratings)
+    private List<RatingByScoreRangeDTO> ratingByScoreRange;
 }

@@ -50,8 +50,13 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/gapfinder
       SPRING_DATASOURCE_USERNAME: gapfinder
       SPRING_DATASOURCE_PASSWORD: gapfinder
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # Values come from the .env file (not committed, see .env.example).
+      # With the dummy defaults the backend starts, but the Google Calendar import does not work.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-dummy-client-id}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-dummy-client-secret}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/google/callback}
+      # The fallback is only for local development; production must set its own JWT_SECRET
+      JWT_SECRET: ${JWT_SECRET:-mF8k2LpQ9xVzT4wR7yN1sB6hJ3dK5gA0cE8uI2oW9qZ4tX7rY1nM6vP3lH5jS8x}
 
     ports:
       - "8080:8080"

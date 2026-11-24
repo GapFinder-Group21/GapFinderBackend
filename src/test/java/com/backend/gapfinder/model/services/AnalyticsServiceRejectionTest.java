@@ -12,6 +12,7 @@ import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.repositories.ActivityRepository;
 import com.backend.gapfinder.model.repositories.AppSessionRepository;
 import com.backend.gapfinder.model.repositories.GapRepository;
+import com.backend.gapfinder.model.repositories.InterestRepository;
 import com.backend.gapfinder.model.repositories.MatchRepository;
 import com.backend.gapfinder.model.repositories.OpenTableRepository;
 import com.backend.gapfinder.model.repositories.UserLocationLogRepository;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// BQ 10: rejection rate by score range
+// BQ 8: rejection rate by score range
 class AnalyticsServiceRejectionTest {
 
     private MatchRepository matchRepository;
@@ -36,7 +37,8 @@ class AnalyticsServiceRejectionTest {
         service = new AnalyticsService(
                 mock(OpenTableAbandonmentService.class), mock(GapRepository.class),
                 mock(UserLocationLogRepository.class), matchRepository, mock(OpenTableRepository.class),
-                mock(AppSessionRepository.class), mock(UserService.class), mock(ActivityRepository.class));
+                mock(AppSessionRepository.class), mock(UserService.class), mock(ActivityRepository.class),
+                mock(InterestRepository.class));
     }
 
     private static RejectionByScoreRangeProjection row(String range, long total, long rejected) {
@@ -79,12 +81,42 @@ class AnalyticsServiceRejectionTest {
 
     @Test
     void theFirstRangeWinsATie() {
-        queryReturns(row("50-100", 10, 5), row("150-200", 4, 2));
+        queryReturns(row("50-100", 10, 5), row("150-200", 6, 3));
 
         List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
 
         assertTrue(result.get(1).highestRejection());
         assertFalse(result.get(3).highestRejection());
+    }
+
+    @Test
+    void aRangeWithFewerThanFiveAnsweredIsNotHighlightedEvenWithTheHighestRate() {
+        queryReturns(row("0-50", 1, 1), row("100-150", 50, 40));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertEquals(100.0, result.get(0).rejectionPercentage());
+        assertFalse(result.get(0).highestRejection());
+        assertTrue(result.get(2).highestRejection());
+    }
+
+    @Test
+    void aRangeWithExactlyFiveAnsweredCanBeHighlighted() {
+        queryReturns(row("0-50", 5, 5), row("100-150", 50, 40));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertTrue(result.get(0).highestRejection());
+        assertFalse(result.get(2).highestRejection());
+    }
+
+    @Test
+    void marksNoRangeWhenAllHaveFewerThanFiveAnswered() {
+        queryReturns(row("0-50", 1, 1), row("50-100", 4, 2));
+
+        List<RejectionByScoreRangeDTO> result = service.getRejectionByScoreRange(null);
+
+        assertTrue(result.stream().noneMatch(RejectionByScoreRangeDTO::highestRejection));
     }
 
     @Test

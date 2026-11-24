@@ -3,6 +3,7 @@ package com.backend.gapfinder.model.services;
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 import com.backend.gapfinder.model.enums.OpenTableStatusEnum;
 import com.backend.gapfinder.model.events.OpenTableEvent;
+import com.backend.gapfinder.model.exceptions.AlreadyDoneException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.OpenTableModel;
 import com.backend.gapfinder.model.models.OpenTableParticipantModel;
@@ -44,6 +45,15 @@ public class OpenTableParticipantService {
 
         return openTableParticipantRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("El participante con id " + id + " no existe"));
+    }
+
+    // The open tables a user joined: one query, so the app does not ask table by table
+    @Transactional(readOnly = true)
+    public List<OpenTableModel> getJoinedOpenTables(Long userId) {
+        log.info("Inicia proceso de consultar las open tables a las que se unió el usuario {}", userId);
+
+        userService.getById(userId);
+        return openTableParticipantRepository.findJoinedOpenTables(userId);
     }
 
     // Get all participant records
@@ -227,7 +237,7 @@ public class OpenTableParticipantService {
         }
 
         if (openTableParticipantRepository.existsByOpenTableIdAndUserId(openTable.getId(), user.getId())) {
-            throw new IllegalStateException("El usuario ya está registrado en esta open table");
+            throw new AlreadyDoneException("El usuario ya está registrado en esta open table");
         }
     }
 

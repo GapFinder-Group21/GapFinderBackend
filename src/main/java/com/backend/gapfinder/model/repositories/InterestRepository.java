@@ -14,7 +14,7 @@ public interface InterestRepository extends JpaRepository<InterestModel, Long> {
 
     boolean existsByName(String name);
 
-    // BQ 14: Which interests have the most students but the fewest open tables?
+    // BQ 12: Which interests have the most students but the fewest open tables?
     // Returns all interests with their student count and open table count since
     // :since.
     // The LEFT JOINs keep interests with no students or no open tables.

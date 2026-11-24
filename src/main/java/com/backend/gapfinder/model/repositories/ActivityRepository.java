@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface ActivityRepository extends JpaRepository<ActivityModel, Long> {
 
-    // BQ 8 INDIVIDUAL
+    // BQ 7 INDIVIDUAL
     // ALL the activities with the open tables created since :since, from the least to the most chosen
     // The LEFT JOIN keeps the activities without any open table (COUNT of a null id is 0), which are the NEVER ones
     // The date goes in the ON and not in the WHERE: a WHERE would drop the activities with no tables in the period

@@ -1,6 +1,6 @@
 package com.backend.gapfinder.model.repositories.projections;
 
-// Projection with the totals of the open tables with activity and how many students always repeat the same one (BQ 6)
+// Projection with the totals of the open tables with activity and how many students always repeat the same one (BQ 5)
 public interface PreferredActivityTotalsProjection {
 
     // Number of open tables created with an activity

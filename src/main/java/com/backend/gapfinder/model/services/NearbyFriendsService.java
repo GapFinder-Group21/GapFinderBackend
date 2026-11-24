@@ -3,6 +3,7 @@ package com.backend.gapfinder.model.services;
 import com.backend.gapfinder.model.models.BuildingModel;
 import com.backend.gapfinder.model.models.UserLocationLogModel;
 import com.backend.gapfinder.model.models.UserModel;
+import com.backend.gapfinder.model.repositories.StudyPeriodRepository;
 import com.backend.gapfinder.model.repositories.UserRepository;
 
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 // Handles the context-aware feature: current building of the user and friends nearby
 // Smart Feature
@@ -27,18 +29,21 @@ public class NearbyFriendsService {
     private final BuildingService buildingService;
     private final UserLocationLogService locationLogService;
     private final FriendshipService friendshipService;
+    private final StudyPeriodRepository studyPeriodRepository;
 
     // Dependency injection constructor
     public NearbyFriendsService(UserService userService,
                                 UserRepository userRepository,
                                 BuildingService buildingService,
                                 UserLocationLogService locationLogService,
-                                FriendshipService friendshipService) {
+                                FriendshipService friendshipService,
+                                StudyPeriodRepository studyPeriodRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.buildingService = buildingService;
         this.locationLogService = locationLogService;
         this.friendshipService = friendshipService;
+        this.studyPeriodRepository = studyPeriodRepository;
     }
 
     // Resolves the building from GPS coordinates, updates the user's context and returns friends nearby
@@ -107,15 +112,28 @@ public class NearbyFriendsService {
         return nearby;
     }
 
-    // Filters the user's accepted friends by building and recent location update
+    // Filters the user's accepted friends by building and recent location update,
+    // leaving out the ones that are in study mode right now
     private List<UserModel> findNearbyFriends(Long userId, Long buildingId) {
-        LocalDateTime since = LocalDateTime.now().minusMinutes(RECENT_MINUTES);
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime since = now.minusMinutes(RECENT_MINUTES);
 
-        return friendshipService.getFriendsByUser(userId).stream()
+        List<UserModel> inBuilding = friendshipService.getFriendsByUser(userId).stream()
                 .filter(f -> f.getCurrentBuilding() != null
                         && f.getCurrentBuilding().getId().equals(buildingId)
                         && f.getLocationUpdatedAt() != null
                         && f.getLocationUpdatedAt().isAfter(since))
+                .toList();
+        if (inBuilding.isEmpty()) {
+            return inBuilding;
+        }
+
+        // One query for all the friends in the building (not one per friend)
+        Set<Long> studying = Set.copyOf(studyPeriodRepository.findUserIdsStudyingAt(
+                inBuilding.stream().map(UserModel::getId).toList(), now));
+
+        return inBuilding.stream()
+                .filter(f -> !studying.contains(f.getId()))
                 .toList();
     }
 }

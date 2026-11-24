@@ -7,6 +7,7 @@ import com.backend.gapfinder.model.enums.MatchStatusEnum;
 import com.backend.gapfinder.model.enums.NotificationTypeEnum;
 import com.backend.gapfinder.model.events.MatchEvent;
 import com.backend.gapfinder.model.exceptions.ForbiddenException;
+import com.backend.gapfinder.model.exceptions.AlreadyDoneException;
 import com.backend.gapfinder.model.exceptions.NotFoundException;
 import com.backend.gapfinder.model.models.GapModel;
 import com.backend.gapfinder.model.models.MatchModel;
@@ -80,6 +81,13 @@ public class MatchService {
     public List<MatchModel> getAll() {
         log.info("Inicia proceso de consultar todos los matches");
         return matchRepository.findAll();
+    }
+
+    // Get the matches of a user, as proposer or as acceptor
+    @Transactional(readOnly = true)
+    public List<MatchModel> getByUser(Long userId) {
+        log.info("Inicia proceso de consultar los matches del usuario con id = {}", userId);
+        return matchRepository.findByProposerGapUserIdOrAcceptorGapUserId(userId, userId);
     }
 
     // Create a new match
@@ -167,9 +175,15 @@ public class MatchService {
             return List.of();
         }
 
+        // A user in study mode is hidden from the others, so they do not look for matches either
+        LocalDateTime now = LocalDateTime.now();
+        if (gapRepository.isGapInStudyPeriod(targetGap.getId(), now)) {
+            log.info("El gap con id = {} está en modo estudio, no se buscan candidatos", gapId);
+            return List.of();
+        }
+
         List<GapModel> candidates = gapRepository.findOverlappingGapsExcludingUser(
-                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime(),
-                LocalDateTime.now());
+                targetGap.getUser().getId(), targetGap.getStartTime(), targetGap.getEndTime(), now);
 
         List<MatchCandidateResponseDTO> result = candidates.stream()
                 .map(candidateGap -> {
@@ -226,9 +240,14 @@ public class MatchService {
         // A gap can only have one meeting booked
         validateGapsAreFree(proposerGap, acceptorGap);
 
+        // The owner of the acceptor gap is studying: they are hidden from the matches → 422
+        if (gapRepository.isGapInStudyPeriod(acceptorGapId, LocalDateTime.now())) {
+            throw new IllegalStateException("Esta persona está en modo estudio y no recibe solicitudes ahora");
+        }
+
         // Only one live request between the same two gaps
         if (matchRepository.existsBetweenGapsAndStatusIn(proposerGapId, acceptorGapId, OPEN_REQUEST_STATUSES)) {
-            throw new IllegalStateException("Ya existe una solicitud de match entre estos gaps");
+            throw new AlreadyDoneException("Ya existe una solicitud de match entre estos gaps");
         }
 
         validateScore(proposerGap, acceptorGap, score);
@@ -240,6 +259,7 @@ public class MatchService {
         match.setEndTime(meeting[1]);
         match.setScore(score);
         match.setStatus(MatchStatusEnum.PENDING);
+        match.setCreatedAt(LocalDateTime.now());
 
         MatchModel saved = matchRepository.save(match);
 
@@ -271,6 +291,7 @@ public class MatchService {
         validateGapsAreFree(match.getProposerGap(), match.getAcceptorGap());
 
         match.setStatus(MatchStatusEnum.ACCEPTED);
+        match.setRespondedAt(LocalDateTime.now());
         MatchModel saved = matchRepository.save(match);
 
         eventPublisher.publishEvent(new MatchEvent(
@@ -293,6 +314,7 @@ public class MatchService {
         validatePending(match);
 
         match.setStatus(MatchStatusEnum.REJECTED);
+        match.setRespondedAt(LocalDateTime.now());
         MatchModel saved = matchRepository.save(match);
 
         eventPublisher.publishEvent(new MatchEvent(
@@ -302,6 +324,28 @@ public class MatchService {
                 saved.getId()));
 
         log.info("Termina proceso de rechazo del match con id = {}", matchId);
+        return saved;
+    }
+
+    // The proposer cancels their own request while nobody has answered it
+    // There is no CANCELLED status, so the request ends as REJECTED (the receiver is not notified)
+    @Transactional
+    public MatchModel cancelMatch(Long matchId, Long userId) {
+        log.info("Inicia proceso de cancelación del match con id = {} por el usuario = {}", matchId, userId);
+
+        MatchModel match = getById(matchId);
+
+        if (!match.getProposerGap().getUser().getId().equals(userId)) {
+            throw new ForbiddenException("Solo quien envió la solicitud puede cancelarla");
+        }
+        if (match.getStatus() != MatchStatusEnum.PENDING) {
+            throw new IllegalStateException("Solo se puede cancelar una solicitud que sigue pendiente");
+        }
+
+        match.setStatus(MatchStatusEnum.REJECTED);
+        MatchModel saved = matchRepository.save(match);
+
+        log.info("Termina proceso de cancelación del match con id = {}", matchId);
         return saved;
     }
 
@@ -390,6 +434,7 @@ public class MatchService {
 
     // Runs automatically every 5 minutes to close the matches whose meeting time already ended:
     // accepted ones become COMPLETED and pending ones that nobody answered become REJECTED
+    // Those ones keep respondedAt null, so BQ 8 can tell "nobody answered" from "the user rejected"
     @Scheduled(fixedRate = 5 * 60 * 1000)
     @Transactional
     public void completeExpiredMatches() {

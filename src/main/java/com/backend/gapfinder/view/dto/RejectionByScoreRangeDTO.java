@@ -6,7 +6,7 @@ public record RejectionByScoreRangeDTO(
     // Score range: '0-50', '50-100', '100-150', '150-200' or '200+'
     String range,
 
-    // Answered matches (ACCEPTED, REJECTED or COMPLETED) in the range
+    // Matches a user answered (accepted, rejected or completed) in the range; the expired ones are not counted
     long total,
 
     // Rejected matches in the range

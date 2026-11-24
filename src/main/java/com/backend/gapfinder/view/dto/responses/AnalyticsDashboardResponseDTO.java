@@ -1,6 +1,7 @@
 ﻿package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.ChatDeliveryTimeStatsDTO;
 import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
@@ -22,10 +23,12 @@ import java.util.List;
 @Data
 public class AnalyticsDashboardResponseDTO {
 
-    // BQ 1: location updates per hour received from the students while inside a building (null if there are none)
+    // BQ 1: location updates per hour received from the students while inside a
+    // building (null if there are none)
     private LocationUpdateRateStatsDTO locationUpdatesPerHour;
 
-    // BQ 2: creation step with the highest abandonment rate (null if there are no abandonments)
+    // BQ 2: creation step with the highest abandonment rate (null if there are no
+    // abandonments)
     private OpenTableAbandonmentStatsBasicDTO mostAbandonedStep;
 
     // BQ 3: minutes after a gap starts at which the app is first opened, per range
@@ -58,27 +61,41 @@ public class AnalyticsDashboardResponseDTO {
     // (empty if there are no activities)
     private List<UnusedActivityStatsDTO> unusedActivities;
 
-    // BQ 8: rejection rate of the 5 match score ranges in natural order, one marked as the highest (empty if there are no answered matches)
+    // BQ 8: rejection rate of the 5 match score ranges in natural order, one marked
+    // as the highest (empty if there are no answered matches)
     private List<RejectionByScoreRangeDTO> rejectionByScoreRange;
 
     // BQ 12: interests with the most students but the fewest open tables,
     // highest unmet demand first
     private List<InterestDemandGapBasicDTO> interestDemandGap;
 
-    // BQ 13: share of the match ratings with 1, 2, 3, 4 and 5 stars, in that order, the most common one marked;
-    // whole history, not filtered by the period (empty if there are no match ratings)
+    // BQ 13: share of the match ratings with 1, 2, 3, 4 and 5 stars, in that order,
+    // the most common one marked;
+    // whole history, not filtered by the period (empty if there are no match
+    // ratings)
     private List<RatingStarsDistributionDTO> ratingsByStars;
 
-    // BQ 14: share of the finished open tables with and without photo that nobody joined, WITH_PHOTO first,
-    // the highest one marked; whole history, not filtered by the period (empty if there are no finished open tables)
+    // BQ 14: share of the finished open tables with and without photo that nobody
+    // joined, WITH_PHOTO first,
+    // the highest one marked; whole history, not filtered by the period (empty if
+    // there are no finished open tables)
     private List<EmptyTablesByPhotoDTO> emptyTablesByPhoto;
 
-    // BQ 15: share of the finished gaps with study mode in each duration range ('<60', '60-120', '120-180', '180+' minutes),
-    // in that order, the highest one marked; all the finished gaps, not filtered by the period
+    // BQ 15: share of the finished gaps with study mode in each duration range
+    // ('<60', '60-120', '120-180', '180+' minutes),
+    // in that order, the highest one marked; all the finished gaps, not filtered by
+    // the period
     // (empty if there are no finished gaps)
     private List<StudyModeByGapDurationDTO> studyModeByGapDuration;
 
-    // BQ 16: average stars of the match ratings in each score range ('0-50', '50-100', '100-150', '150-200', '200+' points),
-    // in that order, the best rated one marked; filtered by the period (empty if there are no match ratings)
+    // BQ 16: average stars of the match ratings in each score range ('0-50',
+    // '50-100', '100-150', '150-200', '200+' points),
+    // in that order, the best rated one marked; filtered by the period (empty if
+    // there are no match ratings)
     private List<RatingByScoreRangeDTO> ratingByScoreRange;
+
+    // BQ 17: how long chat messages take from the tap on Send until the server
+    // saves them, at once and through the
+    // offline queue; filtered by the period (null if there are no reports)
+    private ChatDeliveryTimeStatsDTO chatDeliveryTime;
 }

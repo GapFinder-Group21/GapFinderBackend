@@ -1,95 +1,120 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GapFinder Analytics</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GapFinder Analytics</title>
 
-  <!-- Chart.js from a CDN: no install or build needed -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Chart.js from a CDN: no install or build needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 
-  <style>
-    /* Colors used across the dashboard: one accent for the answer, gray for context */
-    :root {
-      --bg: #f6f7f9;
-      --card: #ffffff;
-      --border: #e3e6ea;
-      --text: #1f2933;
-      --muted: #6b7280;
-      --accent: #2563eb;
-      --accent-soft: #dbe5fb;
-      --accent-mid: #7ea3f2;
-      --gray: #b8c0cc;
-      --error-bg: #fdecec;
-      --error-text: #9b1c1c;
-    }
+<style>
+  /* Colors used across the dashboard: one accent for the answer, gray for context */
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --border: #e3e6ea;
+    --text: #1f2933;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --accent-soft: #dbe5fb;
+    --accent-mid: #7ea3f2;
+    --gray: #b8c0cc;
+    --error-bg: #fdecec;
+    --error-text: #9b1c1c;
+  }
 
-    * {
-      box-sizing: border-box;
-    }
+  * { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      padding: 24px 16px 48px;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-      font-size: 14px;
-    }
+  body {
+    margin: 0;
+    padding: 24px 16px 48px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+  }
 
-    .page {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+  .page { max-width: 1200px; margin: 0 auto; }
 
-    h1 {
-      margin: 0 0 4px;
-      font-size: 24px;
-    }
+  h1 { margin: 0 0 4px; font-size: 24px; }
+  .subtitle { margin: 0 0 20px; color: var(--muted); }
 
-    .subtitle {
-      margin: 0 0 20px;
-      color: var(--muted);
-    }
+  /* Filters row */
+  .filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .filters label { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+  .filters input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  .filters input[type="number"] { width: 80px; }
+  .filters .check { flex-direction: row; align-items: center; gap: 6px; }
+  .filters button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .filters button:disabled { opacity: .6; cursor: default; }
+  .last-update { margin-left: auto; color: var(--muted); font-size: 12px; }
 
-    /* Filters row */
-    .filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: flex-end;
-      padding: 12px 16px;
-      margin-bottom: 20px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-    }
+  /* Period picker: one click buttons, the selected one is highlighted */
+  .filter-group { display: flex; flex-direction: column; gap: 4px; color: var(--muted); font-size: 12px; }
+  .period { display: flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .filters .period button {
+    padding: 7px 14px;
+    border-radius: 0;
+    background: var(--card);
+    color: var(--text);
+    font-weight: 500;
+  }
+  .filters .period button + button { border-left: 1px solid var(--border); }
+  .filters .period button:hover { background: var(--accent-soft); }
+  .filters .period button.active { background: var(--accent); color: #fff; font-weight: 600; }
 
-    .filters label {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+  /* Apply button: highlighted while there are filter changes not applied yet */
+  .filters #applyBtn.pending { box-shadow: 0 0 0 3px var(--accent-soft); }
+  .pending-hint { color: var(--accent); font-size: 12px; font-weight: 600; }
 
-    .filters input {
-      padding: 6px 8px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font: inherit;
-    }
+  /* Error banner (backend down, etc.) */
+  .error {
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    background: var(--error-bg);
+    color: var(--error-text);
+  }
 
-    .filters input[type="number"] {
-      width: 80px;
-    }
+  /* One section per BQ type */
+  .type-section { margin-bottom: 28px; }
+  .type-title { margin: 0 0 12px; font-size: 16px; }
+  .type-title span { color: var(--muted); font-weight: 400; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; }
 
-    .filters .check {
-      flex-direction: row;
-      align-items: center;
-      gap: 6px;
-    }
+  /* One card per BQ: question on top, answer below */
+  .card {
+    min-width: 0;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .card.wide { grid-column: 1 / -1; }
+  .bq-tag { color: var(--accent); font-size: 12px; font-weight: 700; }
+  .question { margin: 4px 0 14px; font-size: 15px; font-weight: 600; }
+  .empty { padding: 24px 0; color: var(--muted); text-align: center; }
+  .chart-box { position: relative; }
 
   /* BQ 2 headline answer */
   .hero { font-size: 40px; font-weight: 700; line-height: 1.1; }
@@ -97,10 +122,17 @@
   .meter { height: 10px; background: var(--accent-soft); border-radius: 5px; overflow: hidden; }
   .meter div { height: 100%; background: var(--accent); border-radius: 5px; }
 
-    .filters button:disabled {
-      opacity: .6;
-      cursor: default;
-    }
+  /* Small text under a chart */
+  .note { margin: 10px 0 0; color: var(--muted); font-size: 12px; }
+  .winner {
+    display: inline-block;
+    padding: 3px 10px;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
+  }
 
   /* Detail table (BQ 11) */
   .table-wrap { overflow-x: auto; margin-top: 12px; }
@@ -109,12 +141,11 @@
   th { color: var(--muted); font-weight: 600; }
 </style>
 </head>
-
 <body>
-  <div class="page">
+<div class="page">
 
-    <h1>GapFinder Analytics</h1>
-    <p class="subtitle">Business questions grouped by type. Data comes live from the database.</p>
+  <h1>GapFinder Analytics</h1>
+  <p class="subtitle">Business questions grouped by type. Data comes live from the database.</p>
 
   <!-- Filters: period and Top N, applied with the Apply filters button (GET /analytics/dashboard) -->
   <div class="filters">
@@ -126,15 +157,6 @@
         <button data-days="90">Last 90 days</button>
         <button data-days="all">All time</button>
       </div>
-      <label>Top N (BQ 2, 12 and 13)
-        <input type="number" id="limit" min="1" placeholder="All">
-      </label>
-      <button id="applyBtn">Apply filters</button>
-      <span class="pending-hint" id="pendingHint" hidden>Filters changed, press Apply filters</span>
-      <label class="check">
-        <input type="checkbox" id="autoRefresh" checked> Auto refresh every 60 s
-      </label>
-      <span class="last-update" id="lastUpdate">Loading…</span>
     </div>
     <label>Top N (BQ 1, 10 and 11)
       <input type="number" id="limit" min="1" placeholder="All">
@@ -147,8 +169,7 @@
     <span class="last-update" id="lastUpdate">Loading…</span>
   </div>
 
-  <script>
-    // ---------- Settings ----------
+  <div class="error" id="error" hidden></div>
 
   <!-- TYPE 1 -->
   <section class="type-section">
@@ -158,6 +179,11 @@
         <div class="bq-tag">BQ 1</div>
         <p class="question">How many location updates per hour does the backend receive from each student while they are inside a campus building?</p>
         <div id="bq1"></div>
+      </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 17</div>
+        <p class="question">How long does a chat message take from the tap on Send until the server saves it, when it goes out at once and when it waits in the offline queue?</p>
+        <div id="bq17"></div>
       </div>
     </div>
   </section>
@@ -268,19 +294,16 @@
     </div>
   </section>
 
-    // Students shown in the BQ 2 table when no Top N is applied
-    const BQ2_DEFAULT_ROWS = 5;
+</div>
 
-    // Labels of the BQ 4 ranges sent by the backend (the backend already sends them in natural order)
-    const OPEN_DELAY_LABELS = { '0-5': '0-5 min', '5-15': '5-15 min', '15-30': '15-30 min', '30+': '30+ min', 'No abrió': 'Did not open' };
+<script>
+  // ---------- Settings ----------
 
-    // Charts currently on screen, so they can be destroyed before drawing them again
-    const charts = {};
+  // Data endpoint (same server, so a relative URL is enough)
+  const API_URL = '/analytics/dashboard';
 
-    // Global Chart.js look
-    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
-    Chart.defaults.color = MUTED;
-    Chart.defaults.plugins.legend.display = false;
+  // How often the dashboard reloads the data when auto refresh is on
+  const REFRESH_MS = 60 * 1000;
 
   // Colors, read from the CSS variables
   const css = getComputedStyle(document.documentElement);
@@ -295,6 +318,9 @@
 
   // Labels of the BQ 1 ranges of updates per hour (the backend already sends them in natural order)
   const UPDATE_RANGE_LABELS = { '1': '1', '2-5': '2-5', '6-15': '6-15', '16-30': '16-30', '31+': '31+' };
+
+  // Labels of the BQ 17 ranges of delivery time (the backend already sends them in natural order)
+  const DELIVERY_RANGE_LABELS = { '<1s': '< 1 s', '1-3s': '1-3 s', '3-10s': '3-10 s', '10-60s': '10-60 s', '1-10min': '1-10 min', '10min+': '10+ min' };
 
   // Students shown in the BQ 1 table when no Top N is applied
   const BQ1_DEFAULT_ROWS = 5;
@@ -333,29 +359,6 @@
             ctx.fillText(text, bar.x, bar.y - 4);
           }
         });
-        ctx.restore();
-      }
-    };
-    Chart.register(valueLabels);
-
-    // ---------- Helpers ----------
-
-    // Number as a percentage with one decimal
-    const pct = value => `${Number(value).toFixed(1)}%`;
-
-    // Minutes as "Xh Ym"
-    function minutes(value) {
-      const total = Math.round(value || 0);
-      const h = Math.floor(total / 60);
-      const m = total % 60;
-      return h > 0 ? `${h}h ${m}m` : `${m}m`;
-    }
-
-    // Date as "Mon, Sep 15, 10:00"
-    function dateTime(value) {
-      if (!value) return '-';
-      return new Date(value).toLocaleString('en-US', {
-        weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       });
       ctx.restore();
     }
@@ -373,6 +376,14 @@
     const h = Math.floor(total / 60);
     const m = total % 60;
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  // Milliseconds as "0.4 s", "12.3 s", "4.5 min" or "1.2 h" (BQ 17)
+  function duration(ms) {
+    if (ms === null || ms === undefined) return '-';
+    if (ms < 60 * 1000) return `${(ms / 1000).toFixed(1)} s`;
+    if (ms < 60 * 60 * 1000) return `${(ms / 60000).toFixed(1)} min`;
+    return `${(ms / 3600000).toFixed(1)} h`;
   }
 
   // Date as "Mon, Sep 15, 10:00"
@@ -429,56 +440,10 @@
       return showEmpty(box);
     }
 
-    // Escapes text before putting it inside HTML
-    function esc(value) {
-      return String(value ?? '').replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[c]);
-    }
+    const rows = data.distribution;
+    const busiest = rows.reduce((best, r) => (r.studentHours > best.studentHours ? r : best), rows[0]);
 
-    // Shows the "no data" message in a card
-    function showEmpty(container) {
-      container.innerHTML = '<div class="empty">No data for this period</div>';
-    }
-
-    // Creates a canvas of the given height inside a card and returns it
-    function newCanvas(container, height) {
-      container.innerHTML = `<div class="chart-box" style="height:${height}px"><canvas></canvas></div>`;
-      return container.querySelector('canvas');
-    }
-
-    // Draws (or redraws) a chart in a card
-    function drawChart(key, canvas, config) {
-      if (charts[key]) charts[key].destroy();
-      charts[key] = new Chart(canvas, config);
-    }
-
-    // Removes the chart of a card (used when the card becomes empty)
-    function clearChart(key) {
-      if (charts[key]) {
-        charts[key].destroy();
-        delete charts[key];
-      }
-    }
-
-    // Height for a horizontal bar chart, based on the number of bars
-    const barsHeight = count => Math.max(140, count * 42 + 40);
-
-    // ---------- BQ renderers ----------
-
-    // BQ 2: headline (median updates per student-hour), column chart of the student-hours per range and
-    // a table with the students that send the most updates
-    function renderBq2(data) {
-      const box = document.getElementById('bq2');
-      if (!data) {
-        clearChart('bq2');
-        return showEmpty(box);
-      }
-
-      const rows = data.distribution;
-      const busiest = rows.reduce((best, r) => (r.studentHours > best.studentHours ? r : best), rows[0]);
-
-      box.innerHTML = `
+    box.innerHTML = `
       <div class="hero">${data.medianPerHour.toFixed(1)} updates / hour</div>
       <div class="hero-sub">Median per student-hour · average ${data.averagePerHour.toFixed(1)} · maximum ${data.maxPerHour}
         (${data.studentHours} student-hours of ${data.studentCount} students)</div>
@@ -504,25 +469,18 @@
           y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           x: { grid: { display: false } }
         },
-        options: {
-          maintainAspectRatio: false,
-          layout: { padding: { top: 20 } },
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            x: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Share of student-hours: ${pct(r.percentage)}`, `Student-hours: ${r.studentHours}`];
-                }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of student-hours: ${pct(r.percentage)}`, `Student-hours: ${r.studentHours}`];
               }
             }
           }
         }
-      });
+      }
+    });
 
     // With Top N the backend already limits the students; without it only the first ones are shown
     const students = applied.limit ? data.students : data.students.slice(0, BQ1_DEFAULT_ROWS);
@@ -533,7 +491,7 @@
         <td>${r.maxPerHour}</td>
         <td>${r.hoursInside}</td>
       </tr>`).join('');
-      box.insertAdjacentHTML('beforeend', `
+    box.insertAdjacentHTML('beforeend', `
       <p class="note">Highlighted: the most common range. A student-hour is one student in one clock hour with at least one
         update; the backend only logs updates sent from inside a building.</p>
       <div class="table-wrap">
@@ -542,15 +500,15 @@
           <tbody>${tableRows}</tbody>
         </table>
       </div>`);
-    }
+  }
 
   // BQ 2: headline card (the backend returns only the most abandoned step)
   function renderBq2(data) {
     const box = document.getElementById('bq2');
     if (!data) return showEmpty(box);
 
-      const rate = data.abandonmentRate * 100;
-      box.innerHTML = `
+    const rate = data.abandonmentRate * 100;
+    box.innerHTML = `
       <div class="hero">${esc(data.step)}</div>
       <div class="hero-sub">${pct(rate)} abandonment rate · ${data.abandonments} of ${data.reached} users left at this step</div>
       <div class="meter" role="img" aria-label="Abandonment rate ${pct(rate)}">
@@ -566,19 +524,11 @@
       return showEmpty(box);
     }
 
-    // BQ 4: headline (most frequent range and average minutes) and a small column chart of the percentage per range
-    function renderBq4(data) {
-      const box = document.getElementById('bq4');
-      if (!data) {
-        clearChart('bq4');
-        return showEmpty(box);
-      }
+    const rows = data.distribution;
+    const average = data.globalAverageMinutes != null ? `${data.globalAverageMinutes.toFixed(1)} min on average` : 'no app openings yet';
+    const hero = data.mostFrequentRange ? OPEN_DELAY_LABELS[data.mostFrequentRange] : 'Nobody opened the app';
 
-      const rows = data.distribution;
-      const average = data.globalAverageMinutes != null ? `${data.globalAverageMinutes.toFixed(1)} min on average` : 'no app openings yet';
-      const hero = data.mostFrequentRange ? OPEN_DELAY_LABELS[data.mostFrequentRange] : 'Nobody opened the app';
-
-      box.innerHTML = `
+    box.innerHTML = `
       <div class="hero">${esc(hero)}</div>
       <div class="hero-sub">Most frequent range · ${esc(average)} (${data.globalGapsCounted} gaps with an opening)</div>
       <div id="bq3Chart"></div>`;
@@ -603,20 +553,12 @@
           y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           x: { grid: { display: false } }
         },
-        options: {
-          maintainAspectRatio: false,
-          layout: { padding: { top: 20 } },
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            x: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Share of gaps: ${pct(r.percentage)}`, `Gaps: ${r.gaps}`];
-                }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of gaps: ${pct(r.percentage)}`, `Gaps: ${r.gaps}`];
               }
             }
           }
@@ -635,22 +577,13 @@
       return showEmpty(box);
     }
 
-    // BQ 6: headline (the most preferred activity), the share of students who always repeat the same activity
-    // and horizontal bars with the most preferred activities (percentage of the open tables of the period)
-    function renderBq6(data) {
-      const box = document.getElementById('bq6');
-      if (!data || !data.ranking || data.ranking.length === 0) {
-        clearChart('bq6');
-        return showEmpty(box);
-      }
+    const rows = data.ranking;
+    const top = rows[0];
+    const repeat = data.repeatPercentage != null
+      ? `${pct(data.repeatPercentage)} of the students with 2 or more open tables always pick the same activity (${data.studentsRepeatingSameActivity} of ${data.studentsWithSeveralTables})`
+      : 'No student has created 2 or more open tables yet';
 
-      const rows = data.ranking;
-      const top = rows[0];
-      const repeat = data.repeatPercentage != null
-        ? `${pct(data.repeatPercentage)} of the students with 2 or more open tables always pick the same activity (${data.studentsRepeatingSameActivity} of ${data.studentsWithSeveralTables})`
-        : 'No student has created 2 or more open tables yet';
-
-      box.innerHTML = `
+    box.innerHTML = `
       <div class="hero">${esc(top.activityName)}</div>
       <div class="hero-sub">Most preferred activity · ${pct(top.percentage)} of the ${data.totalTables} open tables, chosen by ${top.students} of ${data.totalStudents} students</div>
       <div id="bq5Chart"></div>
@@ -677,21 +610,12 @@
           x: { min: 0, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           y: { grid: { display: false } }
         },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 50 } },
-          scales: {
-            x: { min: 0, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Open tables: ${r.tables} (${pct(r.percentage)})`, `Students: ${r.students}`];
-                }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Open tables: ${r.tables} (${pct(r.percentage)})`, `Students: ${r.students}`];
               }
             }
           }
@@ -708,13 +632,10 @@
       return showEmpty(box);
     }
 
-    // BQ 5: column chart by duration range, the lowest coverage highlighted
-    function renderBq5(rows) {
-      const box = document.getElementById('bq5');
-      if (!rows || rows.length === 0) {
-        clearChart('bq5');
-        return showEmpty(box);
-      }
+    // Put the ranges back in their natural order
+    const sorted = [...rows].sort(
+      (a, b) => DURATION_ORDER.indexOf(a.durationRange) - DURATION_ORDER.indexOf(b.durationRange));
+    const lowest = Math.min(...sorted.map(r => r.coveragePercent));
 
     drawChart('bq4', newCanvas(box, 260), {
       type: 'bar',
@@ -736,21 +657,13 @@
           y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           x: { grid: { display: false } }
         },
-        options: {
-          maintainAspectRatio: false,
-          layout: { padding: { top: 20 } },
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            x: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = sorted[ctx.dataIndex];
-                  return [`Coverage: ${pct(r.coveragePercent)}`, `Gaps: ${r.gapCount}`,
-                  `Free time: ${minutes(r.totalGapMinutes)}`, `Matched: ${minutes(r.totalMatchedMinutes)}`];
-                }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = sorted[ctx.dataIndex];
+                return [`Coverage: ${pct(r.coveragePercent)}`, `Gaps: ${r.gapCount}`,
+                        `Free time: ${minutes(r.totalGapMinutes)}`, `Matched: ${minutes(r.totalMatchedMinutes)}`];
               }
             }
           }
@@ -768,19 +681,15 @@
       return showEmpty(box);
     }
 
-    // BQ 7: two horizontal bars (matches vs open tables), the winner highlighted
-    function renderBq7(data) {
-      const box = document.getElementById('bq7');
-      if (!data) {
-        clearChart('bq7');
-        return showEmpty(box);
-      }
+    const winnerText = { MATCHES: 'Winner: Matches', OPEN_TABLES: 'Winner: Open tables', TIE: 'Tie' }[data.winner];
+    const colors = [
+      data.winner === 'MATCHES' ? ACCENT : GRAY,
+      data.winner === 'OPEN_TABLES' ? ACCENT : GRAY
+    ];
 
-      const winnerText = { MATCHES: 'Winner: Matches', OPEN_TABLES: 'Winner: Open tables', TIE: 'Tie' }[data.winner];
-      const colors = [
-        data.winner === 'MATCHES' ? ACCENT : GRAY,
-        data.winner === 'OPEN_TABLES' ? ACCENT : GRAY
-      ];
+    box.innerHTML = `<span class="winner">${esc(winnerText)}</span>`;
+    const holder = document.createElement('div');
+    box.appendChild(holder);
 
     drawChart('bq6', newCanvas(holder, 150), {
       type: 'bar',
@@ -803,26 +712,18 @@
           x: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           y: { grid: { display: false } }
         },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 50 } },
-          scales: {
-            x: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => ctx.dataIndex === 0
-                  ? `${data.completedMatches} of ${data.totalMatches} matches completed`
-                  : `${data.completedOpenTables} of ${data.totalOpenTables} open tables completed`
-              }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => ctx.dataIndex === 0
+                ? `${data.completedMatches} of ${data.totalMatches} matches completed`
+                : `${data.completedOpenTables} of ${data.totalOpenTables} open tables completed`
             }
           }
         }
-      });
-      box.insertAdjacentHTML('beforeend', `<p class="note">
+      }
+    });
+    box.insertAdjacentHTML('beforeend', `<p class="note">
       Matches: ${data.completedMatches} of ${data.totalMatches} completed ·
       Open tables: ${data.completedOpenTables} of ${data.totalOpenTables} completed</p>`);
   }
@@ -835,20 +736,12 @@
       return showEmpty(box);
     }
 
-    // BQ 8: headline (how many activities are never chosen and which) and bars from the least to the most chosen
-    function renderBq8(rows) {
-      const box = document.getElementById('bq8');
-      if (!rows || rows.length === 0) {
-        clearChart('bq8');
-        return showEmpty(box);
-      }
+    const never = rows.filter(r => r.classification === 'NEVER');
+    const rarely = rows.filter(r => r.classification === 'RARELY');
+    const names = never.map(r => esc(r.activityName)).join(', ');
+    const colorOf = r => r.classification === 'NEVER' ? ACCENT : r.classification === 'RARELY' ? ACCENT_MID : GRAY;
 
-      const never = rows.filter(r => r.classification === 'NEVER');
-      const rarely = rows.filter(r => r.classification === 'RARELY');
-      const names = never.map(r => esc(r.activityName)).join(', ');
-      const colorOf = r => r.classification === 'NEVER' ? ACCENT : r.classification === 'RARELY' ? ACCENT_MID : GRAY;
-
-      box.innerHTML = `
+    box.innerHTML = `
       <div class="hero">${never.length} of ${rows.length}</div>
       <div class="hero-sub">activities were never chosen${never.length ? `: ${names}` : ''} · ${rarely.length} rarely chosen</div>
       <div id="bq7Chart"></div>`;
@@ -875,22 +768,13 @@
           x: { beginAtZero: true, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
           y: { grid: { display: false } }
         },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 50 } },
-          scales: {
-            x: { beginAtZero: true, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Share of open tables: ${pct(r.percentage)}`, `Open tables: ${r.openTables}`,
-                  `Status: ${r.classification}`];
-                }
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                return [`Share of open tables: ${pct(r.percentage)}`, `Open tables: ${r.openTables}`,
+                        `Status: ${r.classification}`];
               }
             }
           }
@@ -910,20 +794,12 @@
       return showEmpty(box);
     }
 
-    // BQ 10: headline (the score range with the highest rejection rate) and a column chart of the rejection rate per range
-    function renderBq10(rows) {
-      const box = document.getElementById('bq10');
-      if (!rows || rows.length === 0) {
-        clearChart('bq10');
-        return showEmpty(box);
-      }
+    // The backend sends the 5 ranges in natural order, the empty ones too, and marks the highest one
+    const highest = rows.find(r => r.highestRejection);
+    const total = rows.reduce((sum, r) => sum + r.total, 0);
+    const rejected = rows.reduce((sum, r) => sum + r.rejected, 0);
 
-      // The backend sends the 5 ranges in natural order, the empty ones too, and marks the highest one
-      const highest = rows.find(r => r.highestRejection);
-      const total = rows.reduce((sum, r) => sum + r.total, 0);
-      const rejected = rows.reduce((sum, r) => sum + r.rejected, 0);
-
-      box.innerHTML = `
+    box.innerHTML = `
       <div class="hero">${highest ? `${esc(highest.range)} points` : 'No rejections'}</div>
       <div class="hero-sub">${highest
         ? `Highest rejection rate · ${pct(highest.rejectionPercentage)} (${highest.rejected} of ${highest.total} proposals)`
@@ -1079,197 +955,56 @@
             data: rows.map(r => r.largestGroupSize),
             backgroundColor: ACCENT,
             borderRadius: 4,
-            maxBarThickness: 48,
-            showValues: true,
-            formatValue: pct
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          layout: { padding: { top: 20 } },
-          scales: {
-            y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            x: { title: { display: true, text: 'Match score (points)' }, grid: { display: false } }
+            maxBarThickness: 28,
+            grouped: false,
+            order: 1,
+            showValues: false
           },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Rejection rate: ${pct(r.rejectionPercentage)}`, `Rejected: ${r.rejected}`, `Answered: ${r.total}`];
-                }
-              }
-            }
-          }
-        }
-      });
-      box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the score range with the highest rejection rate. Only answered proposals (accepted, rejected or completed) count.</p>');
-    }
-
-    // BQ 11: horizontal bars ranked by number of students per building
-    function renderBq11(rows) {
-      const box = document.getElementById('bq11');
-      if (!rows || rows.length === 0) {
-        clearChart('bq11');
-        return showEmpty(box);
-      }
-
-      const sorted = [...rows].sort((a, b) => b.studentCount - a.studentCount);
-
-      drawChart('bq11', newCanvas(box, barsHeight(sorted.length)), {
-        type: 'bar',
-        data: {
-          labels: sorted.map(r => r.buildingName),
-          datasets: [{
-            data: sorted.map(r => r.studentCount),
-            backgroundColor: sorted.map((r, i) => i === 0 ? ACCENT : GRAY),
+          {
+            // Back bar: all students with the interest
+            label: 'Students with the interest',
+            data: rows.map(r => r.studentsWithInterest),
+            backgroundColor: ACCENT_SOFT,
             borderRadius: 4,
             maxBarThickness: 28,
+            grouped: false,
+            order: 2,
             showValues: true,
-            formatValue: v => `${v} students`
-          }]
+            formatValue: v => v
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 40 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
         },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 80 } },
-          scales: {
-            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = sorted[ctx.dataIndex];
-                  return [`Students: ${r.studentCount}`, `Gaps: ${r.gapCount}`, `Free time: ${minutes(r.totalGapMinutes)}`];
-                }
-              }
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            mode: 'index',
+            callbacks: {
+              label: ctx => ctx.datasetIndex === 0
+                ? `Largest group: ${ctx.raw} students`
+                : `Students with the interest: ${ctx.raw}`,
+              afterBody: items => `Peak time: ${dateTime(rows[items[0].dataIndex].peakTime)}`
             }
           }
         }
-      });
-    }
-
-    // BQ 12: horizontal bars ranked by unmatched free time rate per (career, semester)
-    function renderBq12(rows) {
-      const box = document.getElementById('bq12');
-      if (!rows || rows.length === 0) {
-        clearChart('bq12');
-        return showEmpty(box);
       }
+    });
 
-      // The backend already sends them sorted, highest rate first
-      drawChart('bq12', newCanvas(box, barsHeight(rows.length)), {
-        type: 'bar',
-        data: {
-          labels: rows.map(r => `${r.career || 'No career'} · Sem ${r.semester ?? '-'}`),
-          datasets: [{
-            data: rows.map(r => r.unmatchedRate * 100),
-            backgroundColor: rows.map((r, i) => i === 0 ? ACCENT : GRAY),
-            borderRadius: 4,
-            maxBarThickness: 28,
-            showValues: true,
-            formatValue: pct
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 50 } },
-          scales: {
-            x: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            tooltip: {
-              callbacks: {
-                label: ctx => {
-                  const r = rows[ctx.dataIndex];
-                  return [`Unmatched rate: ${pct(r.unmatchedRate * 100)}`, `Students: ${r.students}`,
-                  `Gaps: ${r.totalGaps} (${r.unmatchedGaps} without match)`,
-                  `Unmatched time: ${minutes(r.unmatchedMinutes)} of ${minutes(r.totalGapMinutes)}`];
-                }
-              }
-            }
-          }
-        }
-      });
-    }
-
-    // BQ 13: largest free group per interest drawn over the total students with that interest
-    function renderBq13(rows) {
-      const box = document.getElementById('bq13');
-      if (!rows || rows.length === 0) {
-        clearChart('bq13');
-        return showEmpty(box);
-      }
-
-      const holder = document.createElement('div');
-      box.innerHTML = '';
-      box.appendChild(holder);
-
-      drawChart('bq13', newCanvas(holder, barsHeight(rows.length)), {
-        type: 'bar',
-        data: {
-          labels: rows.map(r => r.interestName),
-          datasets: [
-            {
-              // Front bar: largest group free at the same time
-              label: 'Largest group free at the same time',
-              data: rows.map(r => r.largestGroupSize),
-              backgroundColor: ACCENT,
-              borderRadius: 4,
-              maxBarThickness: 28,
-              grouped: false,
-              order: 1,
-              showValues: false
-            },
-            {
-              // Back bar: all students with the interest
-              label: 'Students with the interest',
-              data: rows.map(r => r.studentsWithInterest),
-              backgroundColor: ACCENT_SOFT,
-              borderRadius: 4,
-              maxBarThickness: 28,
-              grouped: false,
-              order: 2,
-              showValues: true,
-              formatValue: v => v
-            }
-          ]
-        },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 40 } },
-          scales: {
-            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
-          },
-          plugins: {
-            legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
-            tooltip: {
-              mode: 'index',
-              callbacks: {
-                label: ctx => ctx.datasetIndex === 0
-                  ? `Largest group: ${ctx.raw} students`
-                  : `Students with the interest: ${ctx.raw}`,
-                afterBody: items => `Peak time: ${dateTime(rows[items[0].dataIndex].peakTime)}`
-              }
-            }
-          }
-        }
-      });
-
-      // Detail table: shows the peak time, which does not fit in the chart
-      const tableRows = rows.map(r => `
+    // Detail table: shows the peak time, which does not fit in the chart
+    const tableRows = rows.map(r => `
       <tr>
         <td>${esc(r.interestName)}</td>
         <td>${r.largestGroupSize} of ${r.studentsWithInterest}</td>
         <td>${esc(dateTime(r.peakTime))}</td>
       </tr>`).join('');
-      box.insertAdjacentHTML('beforeend', `
+    box.insertAdjacentHTML('beforeend', `
       <div class="table-wrap">
         <table>
           <thead><tr><th>Interest</th><th>Largest free group</th><th>Peak time</th></tr></thead>
@@ -1287,94 +1022,85 @@
       return showEmpty(box);
     }
 
-    // BQ 7 Sprint 3: stacked-style horizontal bars showing students (background) vs open tables (foreground)
-    // Interests with 0 open tables are highlighted: they represent the highest unmet demand.
-    function renderBqInterestDemandGap(rows) {
-      const box = document.getElementById('bqInterestDemandGap');
-      if (!rows || rows.length === 0) {
-        clearChart('bqInterestDemandGap');
-        return showEmpty(box);
-      }
+    // The backend already sends them sorted: 0-table interests first, then by demand ratio desc
+    const zeroTables = rows.filter(r => r.openTableCount === 0).length;
+    const topInterest = rows[0];
+    const heroText = topInterest.openTableCount === 0
+      ? `${topInterest.interestName} — no open tables yet`
+      : `${topInterest.interestName} (${topInterest.studentCount} students / ${topInterest.openTableCount} tables)`;
 
-      // The backend already sends them sorted: 0-table interests first, then by demand ratio desc
-      const zeroTables = rows.filter(r => r.openTableCount === 0).length;
-      const topInterest = rows[0];
-      const heroText = topInterest.openTableCount === 0
-        ? `${topInterest.interestName} — no open tables yet`
-        : `${topInterest.interestName} (${topInterest.studentCount} students / ${topInterest.openTableCount} tables)`;
-
-      const holder = document.createElement('div');
-      box.innerHTML = `
+    const holder = document.createElement('div');
+    box.innerHTML = `
       <div class="hero" style="font-size:22px;margin-bottom:4px">${esc(topInterest.interestName)}</div>
       <div class="hero-sub">Highest unmet demand · ${topInterest.studentCount} students, ${topInterest.openTableCount} open tables${zeroTables > 1 ? ` · ${zeroTables} interests have no open tables at all` : ''}</div>
       <div id="bqInterestDemandGapChart"></div>`;
 
-      drawChart('bqInterestDemandGap',
-        newCanvas(document.getElementById('bqInterestDemandGapChart'), barsHeight(rows.length)), {
-        type: 'bar',
-        data: {
-          labels: rows.map(r => r.interestName),
-          datasets: [
-            {
-              label: 'Open tables created',
-              data: rows.map(r => r.openTableCount),
-              backgroundColor: rows.map(r => r.openTableCount === 0 ? ACCENT : ACCENT_MID),
-              borderRadius: 4,
-              maxBarThickness: 28,
-              grouped: false,
-              order: 1,
-              showValues: false
-            },
-            {
-              label: 'Students with interest',
-              data: rows.map(r => r.studentCount),
-              backgroundColor: ACCENT_SOFT,
-              borderRadius: 4,
-              maxBarThickness: 28,
-              grouped: false,
-              order: 2,
-              showValues: true,
-              formatValue: v => v
-            }
-          ]
-        },
-        options: {
-          indexAxis: 'y',
-          maintainAspectRatio: false,
-          layout: { padding: { right: 40 } },
-          scales: {
-            x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
-            y: { grid: { display: false } }
+    drawChart('bqInterestDemandGap',
+      newCanvas(document.getElementById('bqInterestDemandGapChart'), barsHeight(rows.length)), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r.interestName),
+        datasets: [
+          {
+            label: 'Open tables created',
+            data: rows.map(r => r.openTableCount),
+            backgroundColor: rows.map(r => r.openTableCount === 0 ? ACCENT : ACCENT_MID),
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 1,
+            showValues: false
           },
-          plugins: {
-            legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
-            tooltip: {
-              mode: 'index',
-              callbacks: {
-                label: ctx => ctx.datasetIndex === 0
-                  ? `Open tables: ${ctx.raw}`
-                  : `Students: ${ctx.raw}`,
-                afterBody: items => {
-                  const r = rows[items[0].dataIndex];
-                  return r.demandRatio != null
-                    ? `Demand ratio: ${r.demandRatio.toFixed(1)} students/table`
-                    : 'Demand ratio: ∞ (no tables yet)';
-                }
+          {
+            label: 'Students with interest',
+            data: rows.map(r => r.studentCount),
+            backgroundColor: ACCENT_SOFT,
+            borderRadius: 4,
+            maxBarThickness: 28,
+            grouped: false,
+            order: 2,
+            showValues: true,
+            formatValue: v => v
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        maintainAspectRatio: false,
+        layout: { padding: { right: 40 } },
+        scales: {
+          x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#eef0f3' } },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            mode: 'index',
+            callbacks: {
+              label: ctx => ctx.datasetIndex === 0
+                ? `Open tables: ${ctx.raw}`
+                : `Students: ${ctx.raw}`,
+              afterBody: items => {
+                const r = rows[items[0].dataIndex];
+                return r.demandRatio != null
+                  ? `Demand ratio: ${r.demandRatio.toFixed(1)} students/table`
+                  : 'Demand ratio: ∞ (no tables yet)';
               }
             }
           }
         }
-      });
+      }
+    });
 
-      // Detail table
-      const tableRows = rows.map(r => `
+    // Detail table
+    const tableRows = rows.map(r => `
       <tr>
         <td>${esc(r.interestName)}</td>
         <td>${r.studentCount}</td>
         <td>${r.openTableCount}</td>
         <td>${r.demandRatio != null ? r.demandRatio.toFixed(1) : '∞'}</td>
       </tr>`).join('');
-      box.insertAdjacentHTML('beforeend', `
+    box.insertAdjacentHTML('beforeend', `
       <div class="table-wrap">
         <table>
           <thead><tr><th>Interest</th><th>Students</th><th>Open tables</th><th>Demand ratio</th></tr></thead>
@@ -1656,6 +1382,84 @@
     box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the score range with the highest average stars, only among ranges with at least 5 ratings. The ranges are the same as in BQ 8. Only matches that were rated count.</p>');
   }
 
+  // BQ 17: headline (median time of the messages sent at once), a line with the queued ones and grouped columns with
+  // the share of each route's messages in every range of time
+  function renderBq17(data) {
+    const box = document.getElementById('bq17');
+    if (!data) {
+      clearChart('bq17');
+      return showEmpty(box);
+    }
+
+    const direct = data.direct;
+    const queued = data.queued;
+    const rows = data.distribution;
+    // Share of each route's own messages, so a route with few messages can still be compared
+    const share = (count, total) => (total > 0 ? count / total * 100 : 0);
+
+    const plural = n => `${n} message${n === 1 ? '' : 's'}`;
+    const hero = direct.messages > 0 ? `${duration(direct.medianMs)} with connection` : 'No message went out at once';
+    const heroSub = direct.messages > 0
+      ? `Median of ${plural(direct.messages)} sent at once · 9 of 10 within ${duration(direct.p90Ms)} · ${pct(data.slowDirectPercent)} took 3 s or more`
+      : `All ${plural(data.messages)} waited in the offline queue`;
+    const afterReconnect = queued.medianAfterReconnectMs !== null && queued.medianAfterReconnectMs !== undefined
+      ? `, ${duration(queued.medianAfterReconnectMs)} after the connection came back`
+      : '';
+    const queuedLine = queued.messages > 0
+      ? `${plural(queued.messages)} (${pct(data.queuedPercent)}) waited in the offline queue: median ${duration(queued.medianMs)} in total${afterReconnect}`
+      : 'No message waited in the offline queue in this period';
+
+    box.innerHTML = `
+      <div class="hero">${hero}</div>
+      <div class="hero-sub">${heroSub}</div>
+      <div class="hero-sub">${queuedLine}</div>
+      <div id="bq17Chart"></div>`;
+
+    drawChart('bq17', newCanvas(document.getElementById('bq17Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => DELIVERY_RANGE_LABELS[r.range] || r.range),
+        datasets: [{
+          label: 'Sent at once',
+          data: rows.map(r => share(r.direct, direct.messages)),
+          backgroundColor: ACCENT,
+          borderRadius: 4,
+          maxBarThickness: 40
+        }, {
+          label: 'Sent by the offline queue',
+          data: rows.map(r => share(r.queued, queued.messages)),
+          backgroundColor: GRAY,
+          borderRadius: 4,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { title: { display: true, text: 'Time from the tap on Send until the server saved it' }, grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                const count = ctx.datasetIndex === 0 ? r.direct : r.queued;
+                return `${ctx.dataset.label}: ${pct(ctx.parsed.y)} (${plural(count)})`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    box.insertAdjacentHTML('beforeend', `
+      <p class="note">Each color adds up to 100% of its own messages. The app measures the time with the phone clock and
+        sends it after the server saves the message. "After the connection came back" leaves out the time the
+        student was offline, so it shows how fast the queue reacts.</p>`);
+  }
+
   // Calls the backend once and redraws every card
   async function loadDashboard() {
     const myRequest = ++requestNumber;
@@ -1682,6 +1486,7 @@
       renderBq14(data.emptyTablesByPhoto);
       renderBq15(data.studyModeByGapDuration);
       renderBq16(data.ratingByScoreRange);
+      renderBq17(data.chatDeliveryTime);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
@@ -1693,117 +1498,35 @@
     } finally {
       if (myRequest === requestNumber) applyBtn.textContent = 'Apply filters';
     }
+  }
 
-    // ---------- Loading ----------
-
-    const periodButtons = document.querySelectorAll('#period button');
-    const limitInput = document.getElementById('limit');
-    const applyBtn = document.getElementById('applyBtn');
-    const pendingHint = document.getElementById('pendingHint');
-    const autoRefresh = document.getElementById('autoRefresh');
-    const lastUpdate = document.getElementById('lastUpdate');
-    const errorBox = document.getElementById('error');
-    let timer = null;
-
-    // Filters currently shown on the dashboard (they only change when Apply filters is pressed)
-    let applied = { days: '30', limit: '' };
-
-    // Filters selected on screen, maybe not applied yet
-    function selectedFilters() {
-      const limit = limitInput.value && Number(limitInput.value) > 0 ? limitInput.value : '';
-      return { days: document.querySelector('#period button.active').dataset.days, limit };
-    }
-
-    // Shows or hides the "not applied" hint
-    function updatePending() {
-      const sel = selectedFilters();
-      const pending = sel.days !== applied.days || sel.limit !== applied.limit;
-      pendingHint.hidden = !pending;
-      applyBtn.classList.toggle('pending', pending);
-    }
-
-    // Start date of a period, as local time "YYYY-MM-DDTHH:mm:ss" (the format the backend expects)
-    function periodStart(days) {
-      if (days === 'all') return '2000-01-01T00:00:00';
-      const d = new Date(Date.now() - Number(days) * 24 * 60 * 60 * 1000);
-      const pad = n => String(n).padStart(2, '0');
-      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    // Builds the request URL with the applied filters
-    function buildUrl() {
-      const params = new URLSearchParams();
-      params.set('since', periodStart(applied.days));
-      if (applied.limit) params.set('limit', applied.limit);
-      return `${API_URL}?${params.toString()}`;
-    }
-
-    // Number of the last request, so an older answer never overwrites a newer one
-    let requestNumber = 0;
-
-    // Calls the backend once and redraws every card
-    async function loadDashboard() {
-      const myRequest = ++requestNumber;
-      applyBtn.textContent = 'Loading…';
-      try {
-        const response = await fetch(buildUrl());
-        if (!response.ok) throw new Error(`The backend answered ${response.status}`);
-        const data = await response.json();
-        if (myRequest !== requestNumber) return;
-
-        renderBq2(data.locationUpdatesPerHour);
-        renderBq3(data.mostAbandonedStep);
-        renderBq4(data.appOpenDelay);
-        renderBq5(data.gapCoverageByDuration);
-        renderBq6(data.preferredActivity);
-        renderBq7(data.connectionMethods);
-        renderBq8(data.unusedActivities);
-        renderBq10(data.rejectionByScoreRange);
-        renderBq11(data.buildingsByGapPresence);
-        renderBq12(data.unmatchedFreeTimeByCareerSemester);
-        renderBq13(data.interestsByLargestFreeGroup);
-        renderBqInterestDemandGap(data.interestDemandGap);
-
-        errorBox.hidden = true;
-        lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;
-      } catch (e) {
-        if (myRequest !== requestNumber) return;
-        errorBox.textContent = `Could not load the dashboard (${e.message}). Make sure the backend and the database are running.`;
-        errorBox.hidden = false;
-        lastUpdate.textContent = 'Update failed';
-      } finally {
-        if (myRequest === requestNumber) applyBtn.textContent = 'Apply filters';
-      }
-    }
-
-    // Applies the selected filters and reloads the dashboard
-    function applyFilters() {
-      applied = selectedFilters();
-      updatePending();
-      loadDashboard();
-    }
-
-    // Starts or stops the automatic refresh
-    function setAutoRefresh() {
-      clearInterval(timer);
-      timer = autoRefresh.checked ? setInterval(loadDashboard, REFRESH_MS) : null;
-    }
-
-    // Events: selecting filters only marks them as pending, Apply filters loads them
-    periodButtons.forEach(button => button.addEventListener('click', () => {
-      periodButtons.forEach(b => b.classList.remove('active'));
-      button.classList.add('active');
-      updatePending();
-    }));
-    limitInput.addEventListener('input', updatePending);
-    limitInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
-    applyBtn.addEventListener('click', applyFilters);
-    autoRefresh.addEventListener('change', setAutoRefresh);
-
-    // First load
+  // Applies the selected filters and reloads the dashboard
+  function applyFilters() {
+    applied = selectedFilters();
+    updatePending();
     loadDashboard();
-    setAutoRefresh();
-  </script>
-</body>
+  }
 
+  // Starts or stops the automatic refresh
+  function setAutoRefresh() {
+    clearInterval(timer);
+    timer = autoRefresh.checked ? setInterval(loadDashboard, REFRESH_MS) : null;
+  }
+
+  // Events: selecting filters only marks them as pending, Apply filters loads them
+  periodButtons.forEach(button => button.addEventListener('click', () => {
+    periodButtons.forEach(b => b.classList.remove('active'));
+    button.classList.add('active');
+    updatePending();
+  }));
+  limitInput.addEventListener('input', updatePending);
+  limitInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyFilters(); });
+  applyBtn.addEventListener('click', applyFilters);
+  autoRefresh.addEventListener('change', setAutoRefresh);
+
+  // First load
+  loadDashboard();
+  setAutoRefresh();
+</script>
+</body>
 </html>

@@ -1,6 +1,8 @@
-package com.backend.gapfinder.model.facades;
+﻿package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
+import com.backend.gapfinder.view.dto.ChatDeliveryTimeStatsDTO;
+import com.backend.gapfinder.model.services.ChatDeliveryReportService;
 import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
 import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
 import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
@@ -33,16 +35,21 @@ public class AnalyticsFacade {
     private static final int DEFAULT_DAYS_BACK = 30;
 
     private final AnalyticsService analyticsService;
+    private final ChatDeliveryReportService chatDeliveryReportService;
 
     // Dependency injection constructor
-    public AnalyticsFacade(AnalyticsService analyticsService) {
+    public AnalyticsFacade(AnalyticsService analyticsService, ChatDeliveryReportService chatDeliveryReportService) {
         this.analyticsService = analyticsService;
+        this.chatDeliveryReportService = chatDeliveryReportService;
     }
 
     // Collects the answers of all the business questions in a single response
-    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ 1, BQ 10 and BQ 11)
-    // Not @Transactional on purpose: each BQ runs in its own transaction, so a "no data" error in one of them
-    // does not mark a shared transaction as rollback-only and break the whole dashboard
+    // since: optional, last 30 days if null. limit: optional, all rows if null (BQ
+    // 1, BQ 10 and BQ 11)
+    // Not @Transactional on purpose: each BQ runs in its own transaction, so a "no
+    // data" error in one of them
+    // does not mark a shared transaction as rollback-only and break the whole
+    // dashboard
     public AnalyticsDashboardResponseDTO getDashboard(LocalDateTime since, Integer limit) {
         LocalDateTime start = since != null ? since : LocalDateTime.now().minusDays(DEFAULT_DAYS_BACK);
 
@@ -61,18 +68,21 @@ public class AnalyticsFacade {
         dashboard.setUnusedActivities(getUnusedActivitiesOrEmpty(start));
         dashboard.setInterestDemandGap(getInterestDemandGapOrEmpty(start, limit));
         dashboard.setRejectionByScoreRange(getRejectionByScoreRangeOrEmpty(start));
-        // BQ 13, BQ 14 and BQ 15 use the whole history, so they do not receive the start date
+        // BQ 13, BQ 14 and BQ 15 use the whole history, so they do not receive the
+        // start date
         dashboard.setRatingsByStars(getRatingsByStarsOrEmpty());
         dashboard.setEmptyTablesByPhoto(getEmptyTablesByPhotoOrEmpty());
         dashboard.setStudyModeByGapDuration(getStudyModeByGapDurationOrEmpty());
         // BQ 16 uses the period, so it receives the start date
         dashboard.setRatingByScoreRange(getRatingByScoreRangeOrEmpty(start));
-
+        // BQ 17 uses the period (when Send was tapped), so it receives the start date
+        dashboard.setChatDeliveryTime(getChatDeliveryTimeOrNull(start));
         log.info("Termina proceso de consultar el dashboard de analíticas desde {}", start);
         return dashboard;
     }
 
-    // BQ 1: returns null instead of failing when there are no location updates since the given date
+    // BQ 1: returns null instead of failing when there are no location updates
+    // since the given date
     private LocationUpdateRateStatsDTO getLocationUpdatesPerHourOrNull(LocalDateTime since, Integer limit) {
         try {
             return analyticsService.getLocationUpdatesPerHour(since, limit);
@@ -82,7 +92,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 2: returns null instead of failing when there are no abandonments since the given date
+    // BQ 2: returns null instead of failing when there are no abandonments since
+    // the given date
     private OpenTableAbandonmentStatsBasicDTO getMostAbandonedStepOrNull(LocalDateTime since) {
         try {
             return analyticsService.getMostAbandonedStep(since);
@@ -114,9 +125,12 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 10: returns an empty list instead of failing when there are no gaps since the given date
-    // A start date that is not in the past has no gaps to count (BQ 10 counts up to now), so it is an empty answer
-    // and not an error: otherwise one future date would make the whole dashboard fail
+    // BQ 10: returns an empty list instead of failing when there are no gaps since
+    // the given date
+    // A start date that is not in the past has no gaps to count (BQ 10 counts up to
+    // now), so it is an empty answer
+    // and not an error: otherwise one future date would make the whole dashboard
+    // fail
     private List<UnmatchedFreeTimeStatsBasicDTO> getUnmatchedFreeTimeOrEmpty(LocalDateTime since, Integer limit) {
         if (!since.isBefore(LocalDateTime.now())) {
             log.info("Dashboard: la fecha {} no es pasada, no hay gaps que contar", since);
@@ -154,7 +168,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 8: returns an empty list instead of failing when there are no answered matches since the given date
+    // BQ 8: returns an empty list instead of failing when there are no answered
+    // matches since the given date
     private List<RejectionByScoreRangeDTO> getRejectionByScoreRangeOrEmpty(LocalDateTime since) {
         try {
             return analyticsService.getRejectionByScoreRange(since);
@@ -174,7 +189,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 13: returns an empty list instead of failing when there are no match ratings
+    // BQ 13: returns an empty list instead of failing when there are no match
+    // ratings
     private List<RatingStarsDistributionDTO> getRatingsByStarsOrEmpty() {
         try {
             return analyticsService.getRatingsByStars();
@@ -184,7 +200,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 14: returns an empty list instead of failing when there are no finished open tables
+    // BQ 14: returns an empty list instead of failing when there are no finished
+    // open tables
     private List<EmptyTablesByPhotoDTO> getEmptyTablesByPhotoOrEmpty() {
         try {
             return analyticsService.getEmptyTablesByPhoto();
@@ -194,7 +211,8 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 15: returns an empty list instead of failing when there are no finished gaps
+    // BQ 15: returns an empty list instead of failing when there are no finished
+    // gaps
     private List<StudyModeByGapDurationDTO> getStudyModeByGapDurationOrEmpty() {
         try {
             return analyticsService.getStudyModeByGapDuration();
@@ -204,13 +222,25 @@ public class AnalyticsFacade {
         }
     }
 
-    // BQ 16: returns an empty list instead of failing when there are no match ratings since the given date
+    // BQ 16: returns an empty list instead of failing when there are no match
+    // ratings since the given date
     private List<RatingByScoreRangeDTO> getRatingByScoreRangeOrEmpty(LocalDateTime since) {
         try {
             return analyticsService.getRatingByScoreRange(since);
         } catch (NotFoundException e) {
             log.info("Dashboard: no hay calificaciones de matches desde {}", since);
             return List.of();
+        }
+    }
+
+    // BQ 17: returns null instead of failing when there are no chat delivery
+    // reports since the given date
+    private ChatDeliveryTimeStatsDTO getChatDeliveryTimeOrNull(LocalDateTime since) {
+        try {
+            return chatDeliveryReportService.getDeliveryTime(since);
+        } catch (NotFoundException e) {
+            log.info("Dashboard: no hay reportes de entrega de mensajes desde {}", since);
+            return null;
         }
     }
 }

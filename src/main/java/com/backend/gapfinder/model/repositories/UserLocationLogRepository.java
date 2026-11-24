@@ -1,4 +1,4 @@
-package com.backend.gapfinder.model.repositories;
+﻿package com.backend.gapfinder.model.repositories;
 
 import com.backend.gapfinder.model.models.UserLocationLogModel;
 import com.backend.gapfinder.model.repositories.projections.BuildingGapPresenceProjection;

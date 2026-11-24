@@ -1,4 +1,4 @@
-package com.backend.gapfinder.model.services;
+﻿package com.backend.gapfinder.model.services;
 
 import com.backend.gapfinder.view.dto.responses.BuildingGapPresenceResponseDTO;
 import com.backend.gapfinder.view.dto.responses.ConnectionMethodResponseDTO;

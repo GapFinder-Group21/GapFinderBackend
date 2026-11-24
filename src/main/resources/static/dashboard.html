@@ -180,6 +180,11 @@
         <p class="question">How many location updates per hour does the backend receive from each student while they are inside a campus building?</p>
         <div id="bq1"></div>
       </div>
+      <div class="card wide">
+        <div class="bq-tag">BQ 17</div>
+        <p class="question">How long does a chat message take from the tap on Send until the server saves it, when it goes out at once and when it waits in the offline queue?</p>
+        <div id="bq17"></div>
+      </div>
     </div>
   </section>
 
@@ -314,6 +319,9 @@
   // Labels of the BQ 1 ranges of updates per hour (the backend already sends them in natural order)
   const UPDATE_RANGE_LABELS = { '1': '1', '2-5': '2-5', '6-15': '6-15', '16-30': '16-30', '31+': '31+' };
 
+  // Labels of the BQ 17 ranges of delivery time (the backend already sends them in natural order)
+  const DELIVERY_RANGE_LABELS = { '<1s': '< 1 s', '1-3s': '1-3 s', '3-10s': '3-10 s', '10-60s': '10-60 s', '1-10min': '1-10 min', '10min+': '10+ min' };
+
   // Students shown in the BQ 1 table when no Top N is applied
   const BQ1_DEFAULT_ROWS = 5;
 
@@ -368,6 +376,14 @@
     const h = Math.floor(total / 60);
     const m = total % 60;
     return h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  // Milliseconds as "0.4 s", "12.3 s", "4.5 min" or "1.2 h" (BQ 17)
+  function duration(ms) {
+    if (ms === null || ms === undefined) return '-';
+    if (ms < 60 * 1000) return `${(ms / 1000).toFixed(1)} s`;
+    if (ms < 60 * 60 * 1000) return `${(ms / 60000).toFixed(1)} min`;
+    return `${(ms / 3600000).toFixed(1)} h`;
   }
 
   // Date as "Mon, Sep 15, 10:00"
@@ -1366,6 +1382,84 @@
     box.insertAdjacentHTML('beforeend', '<p class="note">Highlighted: the score range with the highest average stars, only among ranges with at least 5 ratings. The ranges are the same as in BQ 8. Only matches that were rated count.</p>');
   }
 
+  // BQ 17: headline (median time of the messages sent at once), a line with the queued ones and grouped columns with
+  // the share of each route's messages in every range of time
+  function renderBq17(data) {
+    const box = document.getElementById('bq17');
+    if (!data) {
+      clearChart('bq17');
+      return showEmpty(box);
+    }
+
+    const direct = data.direct;
+    const queued = data.queued;
+    const rows = data.distribution;
+    // Share of each route's own messages, so a route with few messages can still be compared
+    const share = (count, total) => (total > 0 ? count / total * 100 : 0);
+
+    const plural = n => `${n} message${n === 1 ? '' : 's'}`;
+    const hero = direct.messages > 0 ? `${duration(direct.medianMs)} with connection` : 'No message went out at once';
+    const heroSub = direct.messages > 0
+      ? `Median of ${plural(direct.messages)} sent at once · 9 of 10 within ${duration(direct.p90Ms)} · ${pct(data.slowDirectPercent)} took 3 s or more`
+      : `All ${plural(data.messages)} waited in the offline queue`;
+    const afterReconnect = queued.medianAfterReconnectMs !== null && queued.medianAfterReconnectMs !== undefined
+      ? `, ${duration(queued.medianAfterReconnectMs)} after the connection came back`
+      : '';
+    const queuedLine = queued.messages > 0
+      ? `${plural(queued.messages)} (${pct(data.queuedPercent)}) waited in the offline queue: median ${duration(queued.medianMs)} in total${afterReconnect}`
+      : 'No message waited in the offline queue in this period';
+
+    box.innerHTML = `
+      <div class="hero">${hero}</div>
+      <div class="hero-sub">${heroSub}</div>
+      <div class="hero-sub">${queuedLine}</div>
+      <div id="bq17Chart"></div>`;
+
+    drawChart('bq17', newCanvas(document.getElementById('bq17Chart'), 220), {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => DELIVERY_RANGE_LABELS[r.range] || r.range),
+        datasets: [{
+          label: 'Sent at once',
+          data: rows.map(r => share(r.direct, direct.messages)),
+          backgroundColor: ACCENT,
+          borderRadius: 4,
+          maxBarThickness: 40
+        }, {
+          label: 'Sent by the offline queue',
+          data: rows.map(r => share(r.queued, queued.messages)),
+          backgroundColor: GRAY,
+          borderRadius: 4,
+          maxBarThickness: 40
+        }]
+      },
+      options: {
+        maintainAspectRatio: false,
+        scales: {
+          y: { min: 0, max: 100, ticks: { callback: v => `${v}%` }, grid: { color: '#eef0f3' } },
+          x: { title: { display: true, text: 'Time from the tap on Send until the server saved it' }, grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: true, position: 'top', align: 'start', labels: { boxWidth: 12, boxHeight: 12 } },
+          tooltip: {
+            callbacks: {
+              label: ctx => {
+                const r = rows[ctx.dataIndex];
+                const count = ctx.datasetIndex === 0 ? r.direct : r.queued;
+                return `${ctx.dataset.label}: ${pct(ctx.parsed.y)} (${plural(count)})`;
+              }
+            }
+          }
+        }
+      }
+    });
+
+    box.insertAdjacentHTML('beforeend', `
+      <p class="note">Each color adds up to 100% of its own messages. The app measures the time with the phone clock and
+        sends it after the server saves the message. "After the connection came back" leaves out the time the
+        student was offline, so it shows how fast the queue reacts.</p>`);
+  }
+
   // Calls the backend once and redraws every card
   async function loadDashboard() {
     const myRequest = ++requestNumber;
@@ -1392,6 +1486,7 @@
       renderBq14(data.emptyTablesByPhoto);
       renderBq15(data.studyModeByGapDuration);
       renderBq16(data.ratingByScoreRange);
+      renderBq17(data.chatDeliveryTime);
 
       errorBox.hidden = true;
       lastUpdate.textContent = `Last update: ${new Date().toLocaleTimeString()}`;

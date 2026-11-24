@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import com.backend.gapfinder.model.exceptions.ForbiddenException;
 import com.backend.gapfinder.model.models.UserModel;
 import com.backend.gapfinder.model.services.AnalyticsService;
+import com.backend.gapfinder.model.services.ChatDeliveryReportService;
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +28,7 @@ class AnalyticsControllerAppOpenDelayGuardTest {
     @BeforeEach
     void setUp() {
         analyticsService = mock(AnalyticsService.class);
-        controller = new AnalyticsController(analyticsService);
+        controller = new AnalyticsController(analyticsService, mock(ChatDeliveryReportService.class));
         me = user(4L);
         stranger = user(9L);
     }

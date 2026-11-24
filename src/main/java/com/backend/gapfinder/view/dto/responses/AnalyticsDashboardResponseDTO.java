@@ -1,9 +1,13 @@
 package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
-import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;
+import com.backend.gapfinder.view.dto.InterestDemandGapBasicDTO;<<<<<<<HEAD
+import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
+import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;=======
+import com.backend.gapfinder.view.dto.LocationUpdateRateStatsDTO;
 import com.backend.gapfinder.view.dto.OpenTableAbandonmentStatsBasicDTO;
 import com.backend.gapfinder.view.dto.PreferredActivityStatsDTO;
+import com.backend.gapfinder.view.dto.RejectionByScoreRangeDTO;>>>>>>>f6d346a320aa20aa3e80c9a43afba1560ab2868c
 import com.backend.gapfinder.view.dto.SharedInterestGroupStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnmatchedFreeTimeStatsBasicDTO;
 import com.backend.gapfinder.view.dto.UnusedActivityStatsDTO;
@@ -15,6 +19,10 @@ import java.util.List;
 // Response with the answers of all the business questions, used by the analytics dashboard
 @Data
 public class AnalyticsDashboardResponseDTO {
+
+    // BQ 2: location updates per hour received from the students while inside a
+    // building (null if there are none)
+    private LocationUpdateRateStatsDTO locationUpdatesPerHour;
 
     // BQ 3: creation step with the highest abandonment rate (null if there are no
     // abandonments)
@@ -49,6 +57,10 @@ public class AnalyticsDashboardResponseDTO {
     // BQ 8: all the activities from the least to the most chosen in open tables
     // (empty if there are no activities)
     private List<UnusedActivityStatsDTO> unusedActivities;
+
+    // BQ 10: rejection rate of the 5 match score ranges in natural order, one
+    // marked as the highest (empty if there are no answered matches)
+    private List<RejectionByScoreRangeDTO> rejectionByScoreRange;
 
     // BQ 14: interests with the most students but the fewest open tables,
     // highest unmet demand first

@@ -13249,6 +13249,43 @@ FROM (VALUES
 ) AS v(email)
 JOIN users u ON u.email = v.email AND u.current_building_id IS NOT NULL
 WHERE (SELECT go FROM seed_run);
+-- ---------- high-frequency location logs for the BQ 2 (How many location updates per hour does the backend
+-- receive from each student while they are inside a campus building?)
+-- The logs above arrive about every 11 minutes. This block adds visits where the app sent the location every
+-- 2 minutes (what the Kotlin app does while the Open Tables tab is open) or every minute (the 2-minute refresh plus
+-- the GPS changes), so the BQ shows students with different update rates.
+-- - Weekdays of the last two weeks, one visit per day for 1 of every 10 users, in a building that depends on the user.
+-- - Skips the moments inside the user's gaps, so the BQ 11 and the favorite building (they only use logs inside gaps)
+--   do not change.
+-- - Runs only once, also on databases where the seed already ran: its timestamps carry 17 microseconds, a mark
+--   the other rows do not have.
+INSERT INTO location_logs (user_id, building_id, timestamp)
+SELECT v.user_id, v.building_id, v.visit_start + make_interval(mins => s.n * v.every_minutes) + interval '17 microseconds'
+FROM (
+    SELECT u.id AS user_id,
+        (SELECT b.id FROM buildings b ORDER BY b.id
+         OFFSET (u.id % (SELECT COUNT(*) FROM buildings)) LIMIT 1) AS building_id,
+        d.day + make_interval(hours => (8 + u.id % 9)::int, mins => ((u.id * 7) % 60)::int) AS visit_start,
+        (CASE WHEN u.id % 3 = 0 THEN 1 ELSE 2 END)::int AS every_minutes,
+        (40 + (u.id % 4) * 25)::int AS visit_minutes
+    FROM users u
+    CROSS JOIN generate_series(date_trunc('week', LOCALTIMESTAMP) - interval '14 days',
+                               date_trunc('day', LOCALTIMESTAMP), interval '1 day') AS d(day)
+    WHERE u.id % 10 = 0
+      AND EXTRACT(ISODOW FROM d.day) <= 5
+) v
+CROSS JOIN LATERAL generate_series(0, v.visit_minutes / v.every_minutes) AS s(n)
+WHERE v.building_id IS NOT NULL
+  AND v.visit_start + make_interval(mins => s.n * v.every_minutes) <= LOCALTIMESTAMP
+  AND NOT EXISTS (
+      SELECT 1 FROM gaps g
+      WHERE g.user_id = v.user_id
+        AND v.visit_start + make_interval(mins => s.n * v.every_minutes) BETWEEN g.start_time AND g.end_time
+  )
+  AND NOT EXISTS (
+      SELECT 1 FROM location_logs x
+      WHERE EXTRACT(MICROSECONDS FROM x.timestamp)::bigint % 1000000 = 17
+  );
 -- ---------- notifications
 INSERT INTO notifications (recipient_id, type, message, related_entity_id, is_read, created_at)
 SELECT f.receiver_id, 'FRIEND_REQUEST_SENT', rq.name || ' sent you a friend request', f.id,

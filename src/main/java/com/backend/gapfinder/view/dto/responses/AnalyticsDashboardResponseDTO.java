@@ -1,4 +1,4 @@
-﻿package com.backend.gapfinder.view.dto.responses;
+package com.backend.gapfinder.view.dto.responses;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.ChatDeliveryTimeStatsDTO;

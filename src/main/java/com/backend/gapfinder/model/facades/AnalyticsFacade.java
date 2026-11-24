@@ -1,4 +1,4 @@
-﻿package com.backend.gapfinder.model.facades;
+package com.backend.gapfinder.model.facades;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.ChatDeliveryTimeStatsDTO;

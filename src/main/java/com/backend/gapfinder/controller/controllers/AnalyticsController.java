@@ -1,4 +1,4 @@
-﻿package com.backend.gapfinder.controller.controllers;
+package com.backend.gapfinder.controller.controllers;
 
 import com.backend.gapfinder.view.dto.AppOpenDelayStatsDTO;
 import com.backend.gapfinder.view.dto.EmptyTablesByPhotoDTO;
